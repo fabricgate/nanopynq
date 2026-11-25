@@ -90,10 +90,11 @@ class Overlay:
             baud = link["baudrate"]
             port = port or find_port(self.board)
             try:
-                self._link = (open_port or _open_serial)(port, baud)
+                serial_port = (open_port or _open_serial)(port, baud)
             except OSError as e:  # serial.SerialException is an OSError
                 raise PortOpenError(f"could not open serial port {port}: {e}. {_open_hint()}") from e
-            self._transport = UARTBone(self._link, baud)
+            self._link = serial_port
+            self._transport = UARTBone(serial_port, baud)
         try:
             self._check_id()
             self._check_design(download)

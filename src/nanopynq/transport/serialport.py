@@ -1,18 +1,24 @@
 """Pick the board's host-link serial port from the connected USB serial devices."""
 
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
 from nanopynq.boards import BoardInfo
 from nanopynq.errors import PortNotFound
+
+if TYPE_CHECKING:
+    from serial.tools.list_ports_common import ListPortInfo
 
 _HINT = "pass port='COMx' (or '/dev/ttyUSBx') explicitly"
 
 
-def _ftdi_serial(p) -> str | None:
+def _ftdi_serial(p: "ListPortInfo") -> str | None:
     """Windows with FTDI's driver gives no location; its serial is the chip's plus A / B for the interface."""
     sn = getattr(p, "serial_number", None) or ""
     return sn if not p.location and len(sn) > 1 and sn[-1] in "AB" else None
 
 
-def _iface(p) -> int:
+def _iface(p: "ListPortInfo") -> int:
     # Linux/pyserial location looks like "1-1:1.1"; the trailing number is the USB interface.
     if sn := _ftdi_serial(p):
         return "AB".index(sn[-1])
@@ -20,12 +26,12 @@ def _iface(p) -> int:
     return int(tail) if tail.isdigit() else 0
 
 
-def _chip(p) -> str:
+def _chip(p: "ListPortInfo") -> str:
     sn = _ftdi_serial(p)
     return sn[:-1] if sn else (p.location or p.device).split(":")[0]
 
 
-def find_port(board: BoardInfo, ports=None) -> str:
+def find_port(board: BoardInfo, ports: "Iterable[ListPortInfo] | None" = None) -> str:
     link = board.host_link
     if "usb_vid" not in link:
         raise PortNotFound(f"{board.board_id} has no onboard USB-UART; connect an external adapter and {_HINT}")

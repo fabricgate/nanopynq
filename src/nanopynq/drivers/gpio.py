@@ -1,3 +1,5 @@
+from typing import cast
+
 from nanopynq.ip import DefaultIP
 
 
@@ -21,7 +23,7 @@ class Pin:
 
 class _GPIO(DefaultIP):
     def __len__(self) -> int:
-        return self.description["parameters"]["width"]
+        return cast(int, self.description["parameters"]["width"])
 
     def __getitem__(self, i: int) -> Pin:
         if not 0 <= i < len(self):

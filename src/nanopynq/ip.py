@@ -1,6 +1,8 @@
 """DefaultIP and the bindto driver registry (PYNQ-style)."""
 
-from typing import ClassVar
+from typing import Any, ClassVar
+
+from nanopynq.transport import Transport
 
 _registry: dict[str, type["DefaultIP"]] = {}
 
@@ -8,12 +10,12 @@ _registry: dict[str, type["DefaultIP"]] = {}
 class DefaultIP:
     bindto: ClassVar[list[str]] = []
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         for ip_type in cls.bindto:
             _registry[ip_type] = cls
 
-    def __init__(self, description: dict, transport):
+    def __init__(self, description: dict[str, Any], transport: Transport) -> None:
         self.description = description
         self._transport = transport
 

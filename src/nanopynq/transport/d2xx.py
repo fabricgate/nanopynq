@@ -11,6 +11,7 @@ genuine FTDI parts; using it with the boards' FT2232-compatible debuggers was th
 
 import ctypes
 import time
+from typing import Any
 
 from nanopynq.errors import PortNotFound, PortOpenError, TransportTimeout
 from nanopynq.transport.mpsse import DIR, READ_TIMEOUT, Mpsse
@@ -22,15 +23,16 @@ _PURGE_RX, _PURGE_TX = 1, 2
 class D2xx:
     """The few ftd2xx.dll calls nanopynq needs. Every call raises OSError when the driver reports an error."""
 
-    def __init__(self):
-        self.dll = ctypes.WinDLL("ftd2xx.dll")  # OSError if missing; AttributeError off Windows (no WinDLL)
+    def __init__(self) -> None:
+        # OSError if missing; AttributeError off Windows (no WinDLL), which is also why mypy off Windows rejects it
+        self.dll = ctypes.WinDLL("ftd2xx.dll")  # type: ignore[attr-defined, unused-ignore]
 
-    def _call(self, name: str, *args) -> None:
+    def _call(self, name: str, *args: Any) -> None:
         status = getattr(self.dll, name)(*args)
         if status:
             raise OSError(f"{name} failed (FT_STATUS {status})")
 
-    def devices(self) -> list[dict]:
+    def devices(self) -> list[dict[str, Any]]:
         n = ctypes.c_ulong()
         self._call("FT_CreateDeviceInfoList", ctypes.byref(n))
         out = []
@@ -59,12 +61,12 @@ class D2xx:
             )
         return out
 
-    def open(self, index: int):
+    def open(self, index: int) -> ctypes.c_void_p:
         handle = ctypes.c_void_p()
         self._call("FT_Open", ctypes.c_int(index), ctypes.byref(handle))
         return handle
 
-    def setup(self, handle) -> None:
+    def setup(self, handle: ctypes.c_void_p) -> None:
         """Reset, purge, 2 ms latency, 1 s timeouts, then MPSSE (bit mode reset first)."""
         self._call("FT_ResetDevice", handle)
         self._call("FT_Purge", handle, ctypes.c_ulong(_PURGE_RX | _PURGE_TX))
@@ -74,38 +76,39 @@ class D2xx:
         self._call("FT_SetBitMode", handle, ctypes.c_ubyte(0), ctypes.c_ubyte(0))
         self._call("FT_SetBitMode", handle, ctypes.c_ubyte(DIR), ctypes.c_ubyte(0x02))
 
-    def write(self, handle, data: bytes) -> int:
+    def write(self, handle: ctypes.c_void_p, data: bytes) -> int:
         done = ctypes.c_ulong()
         self._call("FT_Write", handle, ctypes.c_char_p(bytes(data)), ctypes.c_ulong(len(data)), ctypes.byref(done))
         return done.value
 
-    def read(self, handle, n: int) -> bytes:
+    def read(self, handle: ctypes.c_void_p, n: int) -> bytes:
         """Up to n bytes: FT_Read returns early only at the read timeout set in setup()."""
         buf, got = ctypes.create_string_buffer(n), ctypes.c_ulong()
         self._call("FT_Read", handle, buf, ctypes.c_ulong(n), ctypes.byref(got))
         return buf.raw[: got.value]
 
-    def queued(self, handle) -> int:
+    def queued(self, handle: ctypes.c_void_p) -> int:
         n = ctypes.c_ulong()
         self._call("FT_GetQueueStatus", handle, ctypes.byref(n))
         return n.value
 
-    def purge_rx(self, handle) -> None:
+    def purge_rx(self, handle: ctypes.c_void_p) -> None:
         self._call("FT_Purge", handle, ctypes.c_ulong(_PURGE_RX))
 
-    def close(self, handle) -> None:
+    def close(self, handle: ctypes.c_void_p) -> None:
         self._call("FT_Close", handle)
 
 
 class D2xxMpsse(Mpsse):
     """Mpsse with its USB calls on D2XX (which strips the modem-status bytes itself)."""
 
-    def __init__(self, d2xx, handle, pkt: int):
+    def __init__(self, d2xx: D2xx, handle: ctypes.c_void_p, pkt: int) -> None:
         super().__init__(dev=None, pkt=pkt)  # pkt: 512 on a high-speed debugger (BL616), else 64 (BL702)
         self.d2xx, self.handle = d2xx, handle
 
     @classmethod
-    def open(cls, vid: int, pid: int, d2xx=None) -> "D2xxMpsse":
+    # The third argument is an injected D2xx (tests), where Mpsse.open takes an injected USB find.
+    def open(cls, vid: int, pid: int, d2xx: D2xx | None = None) -> "D2xxMpsse":  # type: ignore[override]
         try:
             d2xx = d2xx or D2xx()
             devs = d2xx.devices()

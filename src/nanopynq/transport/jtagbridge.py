@@ -5,7 +5,11 @@ the next scan returns its response ([63] done, [62:32] 0, [31:0] read data). Sam
 as UARTBone, so Overlay and the IP drivers do not care which link is used.
 """
 
+from collections.abc import Callable
+from typing import Any, overload
+
 from nanopynq.errors import BridgeError
+from nanopynq.transport.jtag import Jtag
 
 _DONE = 1 << 31  # response >> 32 for a good response
 CHUNK = 100  # words per USB transfer: the BL702 returns about 1 KB per transfer, 9 bytes per scan
@@ -29,12 +33,12 @@ def _check(addr: int, burst: str, n: int = 1) -> int:
 class JTAGBridge:
     IR_USER = 0x42
 
-    def __init__(self, jtag):
-        self.jtag = jtag  # a transport.jtag.Jtag
+    def __init__(self, jtag: Jtag) -> None:
+        self.jtag = jtag
         self.reset()
 
     @classmethod
-    def open(cls, host_link: dict, find=None) -> "JTAGBridge":
+    def open(cls, host_link: dict[str, Any], find: Callable[..., Any] | None = None) -> "JTAGBridge":
         from nanopynq.transport.jtag import open_jtag
 
         m = open_jtag(host_link["usb_vid"], host_link["usb_pid"], find)
@@ -72,6 +76,10 @@ class JTAGBridge:
                 out.append(resp & 0xFFFF_FFFF)
         return out
 
+    @overload
+    def read(self, addr: int, length: None = None, burst: str = "incr") -> int: ...
+    @overload
+    def read(self, addr: int, length: int, burst: str = "incr") -> list[int]: ...
     def read(self, addr: int, length: int | None = None, burst: str = "incr") -> int | list[int]:
         n = 1 if length is None else length
         if n < 1:

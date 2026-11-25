@@ -13,6 +13,8 @@ ahead of the debugger (section 3.1 there).
 
 import sys
 import time
+from collections.abc import Callable
+from typing import Any
 
 from nanopynq.errors import PortNotFound, PortOpenError, TransportTimeout
 
@@ -66,7 +68,7 @@ def decode_shift(resp: bytes, nbits: int) -> int:
     return out
 
 
-def _serial(dev) -> str:
+def _serial(dev: Any) -> str:  # a pyusb Device (no type information)
     try:
         return str(dev.serial_number)
     except (ValueError, NotImplementedError, OSError):  # usb.core.USBError is an OSError
@@ -76,7 +78,7 @@ def _serial(dev) -> str:
 class Mpsse:
     msb_first = False  # send shift_bytes / idle data as 0x11 (MSB first); program_sram sets it from boards.yaml
 
-    def __init__(self, dev, pkt: int = 64):
+    def __init__(self, dev: Any, pkt: int = 64) -> None:
         self.dev = dev
         self.pkt = pkt  # IN packet size: 64 on the BL702 (full speed), 512 on the BL616 (high speed)
         self._cmd = bytearray()
@@ -84,7 +86,7 @@ class Mpsse:
         self._stale = False  # set when a flush did not finish
 
     @classmethod
-    def open(cls, vid: int, pid: int, find=None) -> "Mpsse":
+    def open(cls, vid: int, pid: int, find: Callable[..., Any] | None = None) -> "Mpsse":
         import usb.core
         import usb.util
 
