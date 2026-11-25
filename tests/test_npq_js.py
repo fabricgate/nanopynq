@@ -1,11 +1,11 @@
-"""Conformance of the browser .npq reader (examples/webserial/npq.js) against the shared inputs of
+"""Conformance of the browser .npq reader (sdk/js/npq.js) against the shared inputs of
 tests/test_npq_conformance.py, in Node and in headless Chrome (file:// page, so crypto.subtle and TextDecoder are the
 browser's). The place is not compared (spec 5.9)."""
 
 import json
 from pathlib import Path
 
-from tests.jsrun import ROOT, WEB, chrome_dump, node, pre
+from tests.jsrun import ROOT, SDK, chrome_dump, node, pre
 
 VECTORS_FILE = Path(__file__).parent / "data" / "npq_vectors.json"
 RUNNER = Path(__file__).parent / "js" / "run_npq_vectors.js"
@@ -41,7 +41,7 @@ def _compare(results: dict) -> None:
 
 
 def test_js_reader_conformance_in_node():
-    _compare(json.loads(node(_NODE, str(WEB / "npq.js"), str(RUNNER), str(VECTORS_FILE))))
+    _compare(json.loads(node(_NODE, str(SDK / "npq.js"), str(RUNNER), str(VECTORS_FILE))))
 
 
 def test_js_reader_conformance_in_chrome(tmp_path):
@@ -49,7 +49,7 @@ def test_js_reader_conformance_in_chrome(tmp_path):
     # "<" escaped so that no input text can end the inline script
     vectors = json.dumps(VECTORS).replace("<", "\\u003c")
     page.write_text(
-        _PAGE.format(npq=(WEB / "npq.js").as_uri(), runner=RUNNER.as_uri(), vectors=vectors), encoding="utf-8"
+        _PAGE.format(npq=(SDK / "npq.js").as_uri(), runner=RUNNER.as_uri(), vectors=vectors), encoding="utf-8"
     )
     out = pre(chrome_dump(page, tmp_path / "profile"), "out")
     assert out.startswith("{"), out[:500]
@@ -61,7 +61,7 @@ def test_bundled_base_npq_in_node():
     out = node(
         "require(process.argv[1]).readNpq(require('fs').readFileSync(process.argv[2]))"
         ".then((d) => console.log(d.design_id, d.link.baudrate))",
-        str(WEB / "npq.js"),
+        str(SDK / "npq.js"),
         str(bundled),
     )
     assert out.split() == ["0xabf78d8c", "115200"]

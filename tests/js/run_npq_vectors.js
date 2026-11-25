@@ -1,4 +1,4 @@
-// Runs examples/webserial/npq.js on the cases of tests/data/npq_vectors.json, in Node (require) and in a browser
+// Runs sdk/js/npq.js on the cases of tests/data/npq_vectors.json, in Node (require) and in a browser
 // (a classic script after npq.js). Resolves to {"<name>": {"design_id": "0x..."} | {"rule": "Vn"} | {"crash": "..."}}.
 "use strict";
 

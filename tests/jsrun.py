@@ -1,4 +1,5 @@
-"""Running the browser code of examples/webserial: in Node, and in headless Chrome. Each skips the test when missing."""
+"""Running the browser code (sdk/js, the page in examples/webserial): in Node, and in headless Chrome.
+Each skips the test when missing."""
 
 import html
 import os
@@ -10,6 +11,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).parents[1]
+SDK = ROOT / "sdk" / "js"
 WEB = ROOT / "examples" / "webserial"
 CHROMES = ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser")
 # Windows installs Chrome off PATH

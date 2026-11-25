@@ -1,4 +1,4 @@
-"""The browser UARTBone client (examples/webserial) puts the same bytes on the wire as the Python one."""
+"""The browser UARTBone client (sdk/js/transport/uartbone.js) puts the same bytes on the wire as the Python one."""
 
 import json
 from pathlib import Path
@@ -11,7 +11,7 @@ from tests import jsrun
 from tests.fakes import FakeUARTBoneDevice
 from tests.jsrun import ROOT, node
 
-JS = Path(__file__).parents[1] / "examples" / "webserial" / "uartbone.js"
+JS = Path(__file__).parents[1] / "sdk" / "js" / "transport" / "uartbone.js"
 
 _DRIVER = """
 const { UARTBone } = require(process.argv[1]);
@@ -60,7 +60,95 @@ def test_js_client_keeps_going_after_a_timeout():
     assert len(out["sent"]) == 6 + 10 + 6
 
 
-# ---------------------------------------------------------------- panel.js: the check of the board, the widgets
+# ---------------------------------------------------------------- transport/webserial.js: SerialLink
+
+_LINK = """
+const { SerialLink } = require("./sdk/js/transport/webserial.js");
+// A Web Serial port with the real port's streams; rx feeds what the board answers, rx.error() is the port failing.
+function fakePort() {
+  const port = { rx: null, sent: [], closed: 0 };
+  port.open = async (options) => {
+    port.options = options;
+    port.readable = new ReadableStream({ start(c) { port.rx = c; } });
+    port.writable = new WritableStream({ write(b) { port.sent.push(...b); } });
+  };
+  port.close = async () => {
+    if (port.readable.locked || port.writable.locked) throw new TypeError("close() while the streams are locked");
+    port.closed++;
+  };
+  return port;
+}
+const tick = () => new Promise((r) => setTimeout(r, 0));
+(async () => {
+  const out = {};
+  let port = fakePort();
+  const errors = [];
+  let link = new SerialLink(port, (e) => errors.push(e.message));
+  await link.open({ baudRate: 115200 });
+  await link.write(Uint8Array.of(1, 2));
+  out.options = port.options;
+  out.sent = port.sent;
+  // an answer in pieces, as USB delivers it; a byte past the four stays for the next read
+  const answer = link.readExactly(4, 1000);
+  for (const piece of [[0x4e, 0x50], [0x51], [0x31, 0x99]]) { port.rx.enqueue(Uint8Array.from(piece)); await tick(); }
+  out.answer = [...await answer];
+  out.left = [...link.buf];
+  link.resetInput();
+  out.afterReset = link.buf.length;
+  out.timeout = await link.readExactly(4, 20).catch((e) => e.message);
+  // close() ends a waiting read at once, and closing is not a read error
+  const t0 = performance.now();
+  const waiting = link.readExactly(4, 5000).catch((e) => e.message);
+  await tick();
+  await link.close();
+  out.waiting = await waiting;
+  out.closedFast = performance.now() - t0 < 1000;
+  out.closed = port.closed;
+  out.writeAfterClose = await link.write(Uint8Array.of(1)).catch((e) => e.message);
+  out.errorsAfterClose = [...errors];
+  // the port fails while open (unplugged): onReadError once, and reads time out from then on
+  port = fakePort();
+  link = new SerialLink(port, (e) => errors.push(e.message));
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await tick();
+  out.readErrors = [...errors];
+  out.afterError = await link.readExactly(1, 20).catch((e) => e.message);
+  // the port fails while it is being closed (unplugged during Disconnect): nothing to report
+  port = fakePort();
+  const closing = [];
+  link = new SerialLink(port, (e) => closing.push(e.message));
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await link.close();
+  out.failedWhileClosing = closing;
+  out.closedAfterFailure = port.closed;
+  // without a callback the failure is dropped, not thrown
+  port = fakePort();
+  link = new SerialLink(port);
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await tick();
+  out.noCallback = "ok";
+  console.log(JSON.stringify(out));
+})();
+"""
+
+
+def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors():
+    out = json.loads(node(_LINK))
+    assert out["options"] == {"baudRate": 115200} and out["sent"] == [1, 2]
+    assert out["answer"] == [0x4E, 0x50, 0x51, 0x31] and out["left"] == [0x99] and out["afterReset"] == 0
+    assert out["timeout"] == "timeout: expected 4 bytes, got 0"
+    assert out["waiting"] == "port closed" and out["closedFast"] and out["closed"] == 1
+    assert out["writeAfterClose"] == "port closed" and out["errorsAfterClose"] == []
+    assert out["readErrors"] == ["device lost"]
+    assert out["afterError"] == "timeout: expected 1 bytes, got 0"
+    assert out["failedWhileClosing"] == [] and out["closedAfterFailure"] == 1
+    assert out["noCallback"] == "ok"
+
+
+# ---------------------------------------------------------------- connect.js, controls.js: board check, widgets
 
 BASE_NPQ = json.loads(
     (ROOT / "src" / "nanopynq" / "data" / "designs" / "tangnano9k-base" / "base.npq").read_text(encoding="utf-8")
@@ -68,8 +156,8 @@ BASE_NPQ = json.loads(
 V10, V11 = 0x00010000, 0x00010001
 
 _CHECK = """
-const { UARTBone } = require("./examples/webserial/uartbone.js");
-const panel = require("./examples/webserial/panel.js");
+const { UARTBone } = require("./sdk/js/transport/uartbone.js");
+const npqConnect = require("./sdk/js/connect.js");
 (async () => {
   const out = [];
   for (const { doc, regs, silent } of JSON.parse(process.argv[1])) {
@@ -86,7 +174,7 @@ const panel = require("./examples/webserial/panel.js");
       async readExactly(n) { if (rx.length < n) throw new Error("timeout"); return Uint8Array.from(rx.splice(0, n)); },
     };
     try {
-      out.push({ ok: await panel.checkBoard(doc, new UARTBone(port, 10)), sent });
+      out.push({ ok: await npqConnect.checkBoard(doc, new UARTBone(port, 10)), sent });
     } catch (e) {
       out.push({ error: e.message, sent });
     }
@@ -153,12 +241,13 @@ def test_check_board_stops_after_sys_id():
 
 
 _PLAN = """
-const panel = require("./examples/webserial/panel.js");
-const out = { plans: JSON.parse(process.argv[1]).map(panel.plan) };
+const npqConnect = require("./sdk/js/connect.js");
+const npqControls = require("./sdk/js/controls.js");
+const out = { plans: JSON.parse(process.argv[1]).map(npqControls.plan) };
 out.values = [["0x3f", 6], ["63", 6], ["64", 6], ["0X3F", 6], ["", 6], ["abc", 6], ["-1", 6], ["0xffffffff", 32],
-              ["0x100000000", 32]].map(([t, w]) => panel.parseValue(t, w));
-out.uart = panel.serialOptions({ link: { kind: "uart", baudrate: 115200 } });
-try { panel.serialOptions({ link: { kind: "jtag" } }); } catch (e) { out.jtag = e.message; }
+              ["0x100000000", 32]].map(([t, w]) => npqControls.parseValue(t, w));
+out.uart = npqConnect.serialOptions({ link: { kind: "uart", baudrate: 115200 } });
+try { npqConnect.serialOptions({ link: { kind: "jtag" } }); } catch (e) { out.jtag = e.message; }
 console.log(JSON.stringify(out));
 """
 
