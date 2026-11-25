@@ -62,7 +62,7 @@ pwm-pkg/tangnano9k/nanopynq/pwm.npq
 
 - プラットフォームは `<board>/nanopynq`。`<board>` は `.npq` の `board`。
 - `fabricgate-index.yaml` に `license`(SPDX)を入れるなら、ここで手で足す。
-- `README.md` をパッケージのフォルダ(`fabricgate-index.yaml` の隣)に置くと、`push` が registry に送り、デザインのページに出る。`fabricgate build` は README を写さないので、手で置く。サンプルの README は `examples/<名前>/README.md`。送るのは harurun78/fabricgate#192 を入れた CLI から(0.7.0 は送らない)。
+- `README.md` をパッケージのフォルダ(`fabricgate-index.yaml` の隣)に置くと、`push` が registry に送り、デザインのページに出る。`fabricgate build` は README を写さないので、手で置く。サンプルの README は `examples/<名前>/README.md`。送るのは fabricgate/fabricgate#192 を入れた CLI から(0.7.0 は送らない)。
 - デザイン名・版・説明・タグは、登録すると変えにくい。本番の前に決める。
 
 ## 3. 登録する
