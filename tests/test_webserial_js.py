@@ -60,6 +60,94 @@ def test_js_client_keeps_going_after_a_timeout():
     assert len(out["sent"]) == 6 + 10 + 6
 
 
+# ---------------------------------------------------------------- transport/webserial.js: SerialLink
+
+_LINK = """
+const { SerialLink } = require("./sdk/js/transport/webserial.js");
+// A Web Serial port with the real port's streams; rx feeds what the board answers, rx.error() is the port failing.
+function fakePort() {
+  const port = { rx: null, sent: [], closed: 0 };
+  port.open = async (options) => {
+    port.options = options;
+    port.readable = new ReadableStream({ start(c) { port.rx = c; } });
+    port.writable = new WritableStream({ write(b) { port.sent.push(...b); } });
+  };
+  port.close = async () => {
+    if (port.readable.locked || port.writable.locked) throw new TypeError("close() while the streams are locked");
+    port.closed++;
+  };
+  return port;
+}
+const tick = () => new Promise((r) => setTimeout(r, 0));
+(async () => {
+  const out = {};
+  let port = fakePort();
+  const errors = [];
+  let link = new SerialLink(port, (e) => errors.push(e.message));
+  await link.open({ baudRate: 115200 });
+  await link.write(Uint8Array.of(1, 2));
+  out.options = port.options;
+  out.sent = port.sent;
+  // an answer in pieces, as USB delivers it; a byte past the four stays for the next read
+  const answer = link.readExactly(4, 1000);
+  for (const piece of [[0x4e, 0x50], [0x51], [0x31, 0x99]]) { port.rx.enqueue(Uint8Array.from(piece)); await tick(); }
+  out.answer = [...await answer];
+  out.left = [...link.buf];
+  link.resetInput();
+  out.afterReset = link.buf.length;
+  out.timeout = await link.readExactly(4, 20).catch((e) => e.message);
+  // close() ends a waiting read at once, and closing is not a read error
+  const t0 = performance.now();
+  const waiting = link.readExactly(4, 5000).catch((e) => e.message);
+  await tick();
+  await link.close();
+  out.waiting = await waiting;
+  out.closedFast = performance.now() - t0 < 1000;
+  out.closed = port.closed;
+  out.writeAfterClose = await link.write(Uint8Array.of(1)).catch((e) => e.message);
+  out.errorsAfterClose = [...errors];
+  // the port fails while open (unplugged): onReadError once, and reads time out from then on
+  port = fakePort();
+  link = new SerialLink(port, (e) => errors.push(e.message));
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await tick();
+  out.readErrors = [...errors];
+  out.afterError = await link.readExactly(1, 20).catch((e) => e.message);
+  // the port fails while it is being closed (unplugged during Disconnect): nothing to report
+  port = fakePort();
+  const closing = [];
+  link = new SerialLink(port, (e) => closing.push(e.message));
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await link.close();
+  out.failedWhileClosing = closing;
+  out.closedAfterFailure = port.closed;
+  // without a callback the failure is dropped, not thrown
+  port = fakePort();
+  link = new SerialLink(port);
+  await link.open({ baudRate: 115200 });
+  port.rx.error(new Error("device lost"));
+  await tick();
+  out.noCallback = "ok";
+  console.log(JSON.stringify(out));
+})();
+"""
+
+
+def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors():
+    out = json.loads(node(_LINK))
+    assert out["options"] == {"baudRate": 115200} and out["sent"] == [1, 2]
+    assert out["answer"] == [0x4E, 0x50, 0x51, 0x31] and out["left"] == [0x99] and out["afterReset"] == 0
+    assert out["timeout"] == "timeout: expected 4 bytes, got 0"
+    assert out["waiting"] == "port closed" and out["closedFast"] and out["closed"] == 1
+    assert out["writeAfterClose"] == "port closed" and out["errorsAfterClose"] == []
+    assert out["readErrors"] == ["device lost"]
+    assert out["afterError"] == "timeout: expected 1 bytes, got 0"
+    assert out["failedWhileClosing"] == [] and out["closedAfterFailure"] == 1
+    assert out["noCallback"] == "ok"
+
+
 # ---------------------------------------------------------------- connect.js, controls.js: board check, widgets
 
 BASE_NPQ = json.loads(
