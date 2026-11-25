@@ -366,7 +366,7 @@ The Tang Nano 20K base design also uses GW_JTAG, which released Apicula has for 
 
 ## Designs from FabricGate
 
-[FabricGate](https://github.com/harurun78/fabricgate) distributes designs and checks their digests; nanopynq
+[FabricGate](https://github.com/fabricgate/fabricgate) distributes designs and checks their digests; nanopynq
 reads the `.npq` and checks the design ID as for any other design. A registered design is used in one of two ways.
 
 Pull it with the `fabricgate` CLI and pass the folder:
