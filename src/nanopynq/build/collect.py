@@ -20,8 +20,10 @@ import operator
 import re
 import subprocess
 import tomllib
+from collections.abc import Callable, Iterator
 from importlib.resources import files
 from pathlib import Path
+from typing import Any, cast
 
 from nanopynq.build.gowin import tool_path
 from nanopynq.errors import BuildError
@@ -53,7 +55,7 @@ class CollectError(ValueError):
     where."""
 
 
-def _eval(node, env: dict):
+def _eval(node: ast.expr, env: dict[str, Any]) -> Any:
     if isinstance(node, ast.Constant) and type(node.value) in (int, str, bool):
         return node.value
     if isinstance(node, ast.Name):
@@ -73,7 +75,7 @@ def _eval(node, env: dict):
     raise CollectError(f"not allowed in a description expression: {ast.unparse(node)}")
 
 
-def value(v, env: dict):
+def value(v: Any, env: dict[str, Any]) -> Any:
     """A description value: "=expr" is evaluated in env, tables element-wise, the rest as is."""
     if isinstance(v, str) and v.startswith("="):
         try:
@@ -86,7 +88,7 @@ def value(v, env: dict):
     return v
 
 
-def load_descriptions(folder: Path = DESC_DIR) -> list[dict]:
+def load_descriptions(folder: Path = DESC_DIR) -> list[dict[str, Any]]:
     """Every *.toml in folder, with its file name as "_file"."""
     descs = []
     for p in sorted(Path(folder).glob("*.toml")):
@@ -101,7 +103,13 @@ def load_descriptions(folder: Path = DESC_DIR) -> list[dict]:
     return descs
 
 
-def elaborate(sources: list[Path], out_dir: Path, top: str = "top", family: str = "gw1n", run=subprocess.run) -> dict:
+def elaborate(
+    sources: list[Path],
+    out_dir: Path,
+    top: str = "top",
+    family: str = "gw1n",
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, Any]:
     """The design after hierarchy (+ proc, which write_json needs) as yosys' JSON, in out_dir/elab.json. The Gowin
     primitives are read as a library, as the crosscheck does; -selected leaves out the library's own modules,
     which write_json cannot write."""
@@ -116,10 +124,10 @@ def elaborate(sources: list[Path], out_dir: Path, top: str = "top", family: str 
     r = run(["yowasp-yosys", "-q", "-p", script], capture_output=True, text=True, cwd=out_dir)
     if r.returncode != 0:
         raise BuildError("ips", r.returncode, (r.stdout or "") + (r.stderr or ""))
-    return json.loads((out_dir / "elab.json").read_text(encoding="utf-8"))
+    return cast(dict[str, Any], json.loads((out_dir / "elab.json").read_text(encoding="utf-8")))
 
 
-def _const(v):
+def _const(v: Any) -> Any:
     """A parameter or attribute value from yosys' JSON: bit strings -> int, other strings as written."""
     if isinstance(v, str) and v and set(v) <= set("01"):
         return int(v, 2)  # shortcut: no signed parameters and no x/z bits; none of nanopynq's IPs has them
@@ -128,11 +136,11 @@ def _const(v):
     return v
 
 
-def _instances(netlist: dict, top: str):
+def _instances(netlist: dict[str, Any], top: str) -> Iterator[tuple[str, str, dict[str, Any], dict[str, Any]]]:
     """(path, module name as written, Verilog parameters, instance attributes) for every instance under top."""
     mods = netlist["modules"]
 
-    def walk(mod, prefix):
+    def walk(mod: str, prefix: str) -> Iterator[tuple[str, str, dict[str, Any], dict[str, Any]]]:
         for cname, cell in mods[mod]["cells"].items():
             sub = mods.get(cell["type"])
             if sub is None:  # a yosys cell ($add, ...)
@@ -146,11 +154,11 @@ def _instances(netlist: dict, top: str):
     yield from walk(top, "")
 
 
-def _base(b) -> int:
+def _base(b: int | str) -> int:
     return int(b, 16) if isinstance(b, str) else b
 
 
-def _npq_base(path: str, b) -> int:
+def _npq_base(path: str, b: int | str) -> int:
     try:
         return _base(b)
     except ValueError:
@@ -159,7 +167,7 @@ def _npq_base(path: str, b) -> int:
         ) from None
 
 
-def _span(ip: dict) -> tuple[int, int] | None:
+def _span(ip: dict[str, Any]) -> tuple[int, int] | None:
     """[base, base + addr_range) of a hand-written IP; None when they are not hex strings (design_id says why)."""
     b, r = ip["base"], ip.get("addr_range", hex(DEFAULT_ADDR_RANGE))
     if not all(isinstance(v, str) and HEX.fullmatch(v) for v in (b, r)):
@@ -167,11 +175,11 @@ def _span(ip: dict) -> tuple[int, int] | None:
     return int(b, 16), int(b, 16) + int(r, 16)
 
 
-def collect(netlist: dict, descs: list[dict], top: str = "top") -> dict[str, dict]:
+def collect(netlist: dict[str, Any], descs: list[dict[str, Any]], top: str = "top") -> dict[str, dict[str, Any]]:
     """{instance path: {"name", "desc", "base": int, "params": the IP's parameters from the RTL}}. Names may repeat
     (a generate loop): merge() checks them once nanopynq.toml has had its say. An instance whose module has a
     described name but not the parameters the description reads (a module of the user's own) is {"name", "error"}."""
-    found: dict[str, dict] = {}
+    found: dict[str, dict[str, Any]] = {}
     for path, module, vparams, attrs in _instances(netlist, top):
         cands = [d for d in descs if d["module"] == module]
         if not cands:
@@ -210,7 +218,9 @@ def collect(netlist: dict, descs: list[dict], top: str = "top") -> dict[str, dic
     return found
 
 
-def merge(found: dict, overrides: dict) -> tuple[dict, dict, list[str]]:
+def merge(
+    found: dict[str, dict[str, Any]], overrides: dict[str, dict[str, Any]]
+) -> tuple[dict[str, dict[str, Any]], dict[str, str | None], list[str]]:
     """nanopynq.toml's [ips.*] (tables, checked by load_config) over the collected ips -> (ips, {ip name: instance
     path, or None for a hand-written IP}, why each instance left out is not an IP).
 
@@ -257,7 +267,7 @@ def merge(found: dict, overrides: dict) -> tuple[dict, dict, list[str]]:
                 raise CollectError(f"ips.{f['name']}: {f['error']}; write the IP whole, with base and type")
             left_out.append(f["error"])  # the build shows it: a slip in a description must not drop an IP unseen
             del found[p]
-    by_name: dict[str, list] = {}
+    by_name: dict[str, str] = {}  # name: instance path
     for p, f in found.items():
         if f["name"] in by_name:
             raise CollectError(
@@ -272,7 +282,8 @@ def merge(found: dict, overrides: dict) -> tuple[dict, dict, list[str]]:
                 'name an instance with (* npq_name *) or instance = "...", or write the IP whole, '
                 "with base and type"
             )
-    ips, origin = {}, {}
+    ips: dict[str, dict[str, Any]] = {}
+    origin: dict[str, str | None] = {}
     for path, f in found.items():
         name = f["name"]
         if not NAME.fullmatch(name):

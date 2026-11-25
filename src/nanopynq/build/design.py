@@ -28,11 +28,13 @@ import shutil
 import subprocess
 import sys
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass
 from importlib.resources import files
 from pathlib import Path
+from typing import Any, cast
 
-from nanopynq.boards import get_board, list_boards, uart_link
+from nanopynq.boards import BoardInfo, get_board, list_boards, uart_link
 from nanopynq.build.collect import CollectError as CollectError  # re-exported: __main__ catches it from here
 from nanopynq.build.collect import collect, elaborate, load_descriptions, merge
 from nanopynq.build.crosscheck import Result, _family, crosscheck
@@ -75,12 +77,12 @@ class Design:
     seed: int
     sources: list[tuple[str, Path]]  # (as written in nanopynq.toml, resolved path), in reading order
     constraints: tuple[str, Path]
-    ips: dict  # nanopynq.toml's [ips]: laid over the ips collected from the RTL (collect.merge)
+    ips: dict[str, dict[str, Any]]  # nanopynq.toml's [ips]: laid over the ips collected from the RTL (collect.merge)
     check_inputs: dict[str, int]
     check_depth: int
 
 
-def _resolve(folder: Path, entry, key: str) -> tuple[str, Path]:
+def _resolve(folder: Path, entry: Any, key: str) -> tuple[str, Path]:
     if type(entry) is not str or not entry:
         raise ConfigError(f"{key}: must be a file name, got {entry!r}")
     if '"' in entry:  # the tools get the names in double quotes
@@ -98,7 +100,7 @@ def _resolve(folder: Path, entry, key: str) -> tuple[str, Path]:
     return entry, p
 
 
-def _check_table(check) -> dict:
+def _check_table(check: Any) -> dict[str, Any]:
     if type(check) is not dict:
         raise ConfigError("check: must be a table ([check])")
     for k in check:
@@ -114,7 +116,7 @@ def _check_table(check) -> dict:
             raise ConfigError(f"check.inputs.{name}: must be an integer 0 .. 2^32 - 1, got {v!r}")
     if type(check["depth"]) is not int or not 1 <= check["depth"] <= 1000:
         raise ConfigError(f"check.depth: must be an integer 1 .. 1000, got {check['depth']!r}")
-    return check
+    return cast(dict[str, Any], check)
 
 
 def load_config(folder: Path) -> Design:
@@ -202,7 +204,9 @@ def _clear_outputs(folder: Path) -> None:
             p.unlink(missing_ok=True)
 
 
-def _ips(d: Design, board, work: Path, run) -> dict:
+def _ips(
+    d: Design, board: BoardInfo, work: Path, run: Callable[..., subprocess.CompletedProcess[str]]
+) -> dict[str, dict[str, Any]]:
     """The ips: collected from the RTL, nanopynq.toml's [ips] over them; shown on stderr, written to build/ips.json."""
     netlist = elaborate([p for _, p in d.sources], work / "elaborate", top=d.top, family=_family(board), run=run)
     ips, origin, left_out = merge(collect(netlist, load_descriptions(), d.top), d.ips)
@@ -217,7 +221,9 @@ def _ips(d: Design, board, work: Path, run) -> dict:
     return ips
 
 
-def build_design(folder: Path, run=subprocess.run, check: bool = True) -> Path:
+def build_design(
+    folder: Path, run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run, check: bool = True
+) -> Path:
     """Spec 5.6 for the design in `folder`; returns the dist folder. Raises ConfigError, ToolsMissing, CollectError
     (the ips cannot be collected from the RTL as nanopynq.toml says), NpqError (the ips break a rule of spec 5.9),
     ManifestError (reserved design_id), CrosscheckFailed (the ips do not match the RTL) or BuildError (a tool

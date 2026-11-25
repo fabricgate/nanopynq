@@ -23,9 +23,11 @@ import os
 import re
 import subprocess
 import time
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from nanopynq.boards import BoardInfo
 from nanopynq.build.gowin import chparam_design_id, tool_path
@@ -113,23 +115,23 @@ class Result:
 class _Query:
     kind: str
     args: str
-    ip: str | None = None
-    reg: str | None = None
+    ip: str = ""  # "" for the queries about no IP or register (done, canary, outside)
+    reg: str = ""
     addr: int | None = None
 
 
-def _registers(ips: dict):
+def _registers(ips: dict[str, Any]) -> Iterator[tuple[str, str, int, dict[str, Any]]]:
     for ip_name, ip in ips.items():
         for reg_name, r in (ip.get("registers") or {}).items():
             yield ip_name, reg_name, int(ip["base"], 16) + int(r["offset"], 16), r
 
 
-def _range(ip: dict) -> tuple[int, int]:
+def _range(ip: dict[str, Any]) -> tuple[int, int]:
     base = int(ip["base"], 16)
     return base, base + int(ip.get("addr_range", hex(DEFAULT_ADDR_RANGE)), 16)
 
 
-def master_verilog(ips: dict) -> str:
+def master_verilog(ips: dict[str, Any]) -> str:
     words = sorted({a >> 2 for *_, a, _ in _registers(ips)})
     defined = " || ".join(f"npqchk_adr == 30'h{w:x}" for w in words) or "1'b0"
     inside, ranges = [], []
@@ -152,7 +154,7 @@ def _family(board: BoardInfo) -> str:
     return args[args.index("-family") + 1] if "-family" in args else "gw1n"
 
 
-def _yosys(script: str, out: Path, run) -> str:
+def _yosys(script: str, out: Path, run: Callable[..., subprocess.CompletedProcess[str]]) -> str:
     try:
         r = run(["yowasp-yosys", "-q", "-p", script], capture_output=True, text=True, cwd=out, timeout=TIMEOUT)
     except subprocess.TimeoutExpired as e:
@@ -194,7 +196,7 @@ def _cannot_check(where: str, message: str, queries: int, t0: float) -> Result:
 
 
 def crosscheck(
-    ips: dict,
+    ips: dict[str, Any],
     sources: list[Path],
     board: BoardInfo,
     out_dir: Path,
@@ -204,7 +206,7 @@ def crosscheck(
     inputs: dict[str, int] | None = None,
     workers: int | None = None,
     design_id: int | None = None,
-    run=subprocess.run,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
 ) -> Result:
     """Check `ips` (spec 5.3, already valid) against the design; design.il and one log per query go to out_dir.
 
