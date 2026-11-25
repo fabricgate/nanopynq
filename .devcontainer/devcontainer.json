@@ -4,7 +4,7 @@
   "name": "nanopynq",
   "build": { "dockerfile": "Dockerfile" },
   "features": {
-    // Node 20 or later: the tests run the browser code (examples/webserial, webusb) in Node.
+    // Node 20 or later: the tests run the browser code (sdk/js) in Node.
     "ghcr.io/devcontainers/features/node:1": { "version": "22" },
     // `task` for Taskfile.yaml.
     "ghcr.io/devcontainers-extra/features/go-task:1": {}

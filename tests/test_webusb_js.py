@@ -1,4 +1,4 @@
-"""The browser JTAG code (examples/webusb/jtag.js) builds the same MPSSE bytes as src/nanopynq/transport/mpsse.py."""
+"""The browser JTAG code (sdk/js/transport/jtag.js) builds the same MPSSE bytes as src/nanopynq/transport/mpsse.py."""
 
 import json
 import random
@@ -8,7 +8,7 @@ from nanopynq.transport.jtagbridge import _command
 from nanopynq.transport.mpsse import _resp_len, decode_shift, encode_shift
 from tests.jsrun import node
 
-JS = Path(__file__).parents[1] / "examples" / "webusb" / "jtag.js"
+JS = Path(__file__).parents[1] / "sdk" / "js" / "transport" / "jtag.js"
 
 _DRIVER = """
 const j = require(process.argv[1]);
