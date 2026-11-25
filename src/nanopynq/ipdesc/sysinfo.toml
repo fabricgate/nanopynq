@@ -1,0 +1,8 @@
+# nanopynq/rtl/sysinfo.v: always at 0 (spec 5.3: the IP named sys)
+type = "nanopynq:sysinfo:1.1"
+module = "sysinfo"
+base = "0x0"
+registers.id = { offset = "0x0", width = 32, access = "ro" }
+registers.version = { offset = "0x4", width = 32, access = "ro" }
+registers.scratch = { offset = "0x8", width = 32, access = "rw" }
+registers.design_id = { offset = "0xc", width = 32, access = "ro" }

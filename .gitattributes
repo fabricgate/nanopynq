@@ -1,0 +1,11 @@
+# Bitstreams and their hashes must survive checkout byte-for-byte (core.autocrlf would rewrite .fs line endings).
+*.fs binary
+src/nanopynq/data/designs/**/manifest.yaml -text
+src/nanopynq/data/designs/**/*.npq -text
+*.sh text eol=lf
+# Build inputs: the same bytes on every OS, so build.json's sha256 of each source matches the committed file.
+*.v text eol=lf
+*.sv text eol=lf
+*.cst text eol=lf
+# Shipped to Linux udev as-is.
+*.rules text eol=lf

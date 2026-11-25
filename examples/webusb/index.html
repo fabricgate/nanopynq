@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nanopynq WebUSB JTAG</title>
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 16px; max-width: 760px; }
+  button { margin: 4px 4px 4px 0; padding: 6px 12px; }
+  pre { background: #f4f4f4; padding: 8px; white-space: pre-wrap; min-height: 6em; }
+</style>
+</head>
+<body>
+<h1>WebUSB JTAG (Tang Nano 4K / 9K / 20K)</h1>
+<p>Spike for issue #23: load a bitstream into SRAM and reach the board's JTAG (interface 0 of the onboard debugger) from the browser.
+Windows: checked with Interface 0 on the WinUSB driver (Zadig), as nanopynq uses it. Chromium-based browsers only.</p>
+<p>
+  <button id="connect">Connect</button>
+  <button id="idcode" disabled>Read IDCODE</button>
+  <button id="bridge" disabled>Read sys (bridge)</button>
+  <br><label>Bitstream (.fs) <input type="file" id="fs" accept=".fs"></label>
+  <button id="load" disabled>Load into SRAM</button> <progress id="prog" value="0" max="1"></progress>
+  <button id="disconnect" disabled>Disconnect</button>
+</p>
+<pre id="log"></pre>
+<script src="jtag.js"></script>
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const log = (s) => { $("log").textContent += s + "\n"; };
+const hex = (v) => "0x" + (v >>> 0).toString(16).padStart(8, "0");
+let m = null;
+
+function enable(on) {
+  $("connect").disabled = on;
+  for (const id of ["idcode", "bridge", "load", "disconnect"]) $(id).disabled = !on;
+}
+
+async function run(fn) {
+  try { await fn(); } catch (e) { log("error: " + (e && e.message ? e.message : e)); }
+}
+
+$("connect").onclick = () => run(async () => {
+  if (!navigator.usb) throw new Error("this browser has no WebUSB");
+  const dev = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x0403, productId: 0x6010 }] });
+  log(`device: ${dev.productName || "?"} (serial ${dev.serialNumber || "?"})`);
+  const t0 = performance.now();
+  m = await Mpsse.open(dev);
+  log(`opened interface 0, IN packet ${m.pkt} bytes, ${(performance.now() - t0).toFixed(0)} ms`);
+  enable(true);
+});
+
+$("idcode").onclick = () => run(async () => {
+  log("IDCODE " + hex(await readIdcode(m)));
+});
+
+$("bridge").onclick = () => run(async () => {
+  const b = new JtagBridge(m);
+  await b.reset();
+  const id = await b.read(0x0), ver = await b.read(0x4), did = await b.read(0xc);
+  log(`sys.id ${hex(id)}${id === 0x4e505131 ? " (NPQ1)" : ""}, sys.version ${hex(ver)}, sys.design_id ${hex(did)}`);
+  const n = 200, t0 = performance.now();
+  for (let i = 0; i < n; i++) await b.read(0x0);
+  log(`round trip ${((performance.now() - t0) / n).toFixed(2)} ms (${n} single reads)`);
+});
+
+$("load").onclick = () => run(async () => {
+  const f = $("fs").files[0];
+  if (!f) throw new Error("choose a .fs file first");
+  const text = await f.text();
+  const t0 = performance.now();
+  const s = await new GowinSram(m).load(text, (done, all) => { $("prog").value = done / all; });
+  log(`loaded ${f.name} (${text.length} characters) in ${((performance.now() - t0) / 1000).toFixed(2)} s, status 0x${s.toString(16)}`);
+});
+
+$("disconnect").onclick = () => run(async () => {
+  await m.close();
+  m = null;
+  enable(false);
+  log("released interface 0");
+});
+</script>
+</body>
+</html>

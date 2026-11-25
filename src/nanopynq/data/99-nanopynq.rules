@@ -1,0 +1,5 @@
+# nanopynq: USB access to the Tang Nano's onboard debugger (FT2232-compatible BL702 / BL616, 0403:6010),
+# both its JTAG interface and its UART. Same shape as openFPGALoader's rule. Install (Linux):
+#   sudo cp 99-nanopynq.rules /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
+# then re-plug the board. Users outside a desktop session need to be in the plugdev group.
+ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="0664", GROUP="plugdev", TAG+="uaccess"

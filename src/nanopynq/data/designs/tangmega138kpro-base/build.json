@@ -1,0 +1,55 @@
+{
+  "design": "tangmega138kpro-base",
+  "command": "uv run python tools/build_base.py --board tangmega138kpro --design base --seed 1",
+  "commit": "0ef33aff560ccfb91593eed1e00e8b6805f0d63d",
+  "dirty": false,
+  "seed": 1,
+  "sources": [
+    {
+      "file": "src/nanopynq/rtl/base_regs.v",
+      "sha256": "f10fc9ec21b064bc2c355f2a9c9f7013a03c406e58521816f65dce5feafcc2d3"
+    },
+    {
+      "file": "src/nanopynq/rtl/base_soc.v",
+      "sha256": "93ab8f3982cd6949423fa3b275774b442435bb225b4ef9b7dff57cd3ec2b813d"
+    },
+    {
+      "file": "src/nanopynq/rtl/regbus_gpio.v",
+      "sha256": "77eecf0be001d3aeb1257788f86c017da75beb814a8ad8e28641c0ea1e0adcf3"
+    },
+    {
+      "file": "src/nanopynq/rtl/sysinfo.v",
+      "sha256": "f0425089b02780cb44bb174b4c4198b7771f3d8953ef43b5783e062bf9fadf59"
+    },
+    {
+      "file": "src/nanopynq/rtl/uart_rx.v",
+      "sha256": "c6bbad344236494a298ea7fe654b26272ae19db020b809ae5a9b5f9327fbd20f"
+    },
+    {
+      "file": "src/nanopynq/rtl/uart_tx.v",
+      "sha256": "e2e0eb2c93e486855c21126fe49051a8e58981c44f731d262b2c742aeca7fcf2"
+    },
+    {
+      "file": "src/nanopynq/rtl/uartbone_bridge.v",
+      "sha256": "89dbe55c9c73eea048ba5655a9963e95c43fb24fae603745b98ee6de09b411c4"
+    },
+    {
+      "file": "gateware/boards/tangmega138kpro/top.v",
+      "sha256": "6b797f6dcdc7d2c04870ab903498b24d01d58f40dfb36fb78c044e23c1c30248"
+    },
+    {
+      "file": "gateware/boards/tangmega138kpro/tangmega138kpro.cst",
+      "sha256": "29d7d4aa7a831940953b7ce227ba11489b950a175d011805138afbef73a24d5a"
+    }
+  ],
+  "tools": {
+    "yowasp-yosys": "0.70.0.0.post1259",
+    "yowasp-nextpnr-himbaechel-gowin": "0.11.1.0.post826",
+    "Apycula": "0.32",
+    "yowasp-runtime": "1.96",
+    "wasmtime": "47.0.1"
+  },
+  "python": "3.11.15",
+  "os": "Windows AMD64",
+  "bitstream_sha256": "6bfbf7a4045831a46bb552027b1c5e7e6a58915e08c4e33569f8eccc969adc3c"
+}

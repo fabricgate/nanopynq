@@ -1,0 +1,7 @@
+# nanopynq/rtl/regbus_gpio.v with IS_INPUT = 1
+type = "nanopynq:gpio_in:1.0"
+module = "regbus_gpio"
+when = "=IS_INPUT != 0"
+base = "=BASE"
+parameters.width = "=WIDTH"
+registers.data = { offset = "0x0", width = "=width", access = "ro" }

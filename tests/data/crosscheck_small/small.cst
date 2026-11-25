@@ -1,0 +1,11 @@
+// Tang Nano 9K pins of the crosscheck tests' small design.
+IO_LOC "clk" 52;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "uart_rx" 18;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "uart_tx" 17;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "btn[0]" 3;
+IO_LOC "btn[1]" 4;
+IO_PORT "btn[0]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+IO_PORT "btn[1]" IO_TYPE=LVCMOS18 PULL_MODE=UP;

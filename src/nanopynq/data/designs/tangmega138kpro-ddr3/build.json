@@ -1,0 +1,81 @@
+{
+  "design": "tangmega138kpro-ddr3",
+  "command": "uv run python tools/build_base.py --board tangmega138kpro --design ddr3 --seed 1",
+  "commit": "a1dca8ee200cea027cf11d85b7d5e43010ffbb77",
+  "dirty": false,
+  "seed": 1,
+  "sources": [
+    {
+      "file": "src/nanopynq/rtl/base_regs.v",
+      "sha256": "f10fc9ec21b064bc2c355f2a9c9f7013a03c406e58521816f65dce5feafcc2d3"
+    },
+    {
+      "file": "src/nanopynq/rtl/regbus_gpio.v",
+      "sha256": "77eecf0be001d3aeb1257788f86c017da75beb814a8ad8e28641c0ea1e0adcf3"
+    },
+    {
+      "file": "src/nanopynq/rtl/sysinfo.v",
+      "sha256": "f0425089b02780cb44bb174b4c4198b7771f3d8953ef43b5783e062bf9fadf59"
+    },
+    {
+      "file": "src/nanopynq/rtl/uart_rx.v",
+      "sha256": "c6bbad344236494a298ea7fe654b26272ae19db020b809ae5a9b5f9327fbd20f"
+    },
+    {
+      "file": "src/nanopynq/rtl/uart_tx.v",
+      "sha256": "e2e0eb2c93e486855c21126fe49051a8e58981c44f731d262b2c742aeca7fcf2"
+    },
+    {
+      "file": "src/nanopynq/rtl/uartbone_bridge.v",
+      "sha256": "89dbe55c9c73eea048ba5655a9963e95c43fb24fae603745b98ee6de09b411c4"
+    },
+    {
+      "file": "src/nanopynq/rtl/ddr3_arb.v",
+      "sha256": "b85e427d241d08768edfc32533f7c2f155793b2ec4a6b0c7c798a1ecdd43f5e5"
+    },
+    {
+      "file": "src/nanopynq/rtl/ddr3_port.v",
+      "sha256": "c9e055353c2d0d990d0c9fc97a37935f7f9e295c91de7b7d637c78d24572ae86"
+    },
+    {
+      "file": "src/nanopynq/rtl/ddr3_test.v",
+      "sha256": "a670c77acc6186ace785f533b98816afc2173c2415f048e851ddb71749e40e46"
+    },
+    {
+      "file": "src/nanopynq/rtl/ddr3/ddr3_ctrl.sv",
+      "sha256": "caedb8c6809e15f783b41c791f8a71216001243311a459a146663db315afbeea"
+    },
+    {
+      "file": "src/nanopynq/rtl/ddr3/ddr3_phy_2to1.sv",
+      "sha256": "e2bcf08ee18f74725ca29f8190830612f888d7ad922093485e467377613077ff"
+    },
+    {
+      "file": "gateware/boards/tangmega138kpro/ddr3_top.v",
+      "sha256": "b50a559d7640f177ca322ee6475101508923c2bacb68cdfdef9824dbe102ca02"
+    },
+    {
+      "file": "gateware/boards/tangmega138kpro/ddr3.cst",
+      "sha256": "8d2bec5b6be2144a3bcc1b91c2d985f01e2dbf76d368776e48fe9977430c2ff0"
+    }
+  ],
+  "tools": {
+    "oss_cad_suite": "20261115",
+    "yosys": "Yosys 0.71+34 (git sha1 e419c4eef, Release, GNU /usr/bin/x86_64-w64-mingw32-g++ 15.2.1)",
+    "apicula": {
+      "commit": "53c6866cdd4d02eae947f833a7642d896d050fec",
+      "dirty": false,
+      "db": {
+        "GW5AST-138C.msgpack.xz": "a3ccee1b8c6e70aff1bcce149d00c12b119c851527773077061dc754ae349045"
+      },
+      "db_image": "pepijndevos/apicula:1.9.10.03"
+    },
+    "nextpnr": "nextpnr 0171b1da image sha256:2cd37f2e4a24b481fc9731d33be82a425128db5b1f9fd2448529a1cf97325055",
+    "chipdb": {
+      "file": "chipdb-GW5AST-138C-53c6866.bin",
+      "sha256": "218c3da8557cd93a8a0572fd459e37223548b4b94a5f5dcaddb610948d6636c7"
+    }
+  },
+  "python": "3.11.15",
+  "os": "Windows AMD64",
+  "bitstream_sha256": "f2d03e4e626d58792938f16a1c78827d6bd49cdf73307a2fe24951a64b931e9c"
+}

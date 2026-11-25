@@ -1,0 +1,55 @@
+{
+  "design": "tangnano9k-base",
+  "command": "uv run python tools/build_base.py --board tangnano9k --design base --seed 1",
+  "commit": "9a6e513fe67ad0fd8ffa167380064b570d7cc818",
+  "dirty": false,
+  "seed": 1,
+  "sources": [
+    {
+      "file": "gateware/rtl/base_regs.v",
+      "sha256": "403f4fe94a5d3fd71c600c1603baf8bfdedbbfb81136067c7b31986c4f42fc3a"
+    },
+    {
+      "file": "gateware/rtl/base_soc.v",
+      "sha256": "93ab8f3982cd6949423fa3b275774b442435bb225b4ef9b7dff57cd3ec2b813d"
+    },
+    {
+      "file": "gateware/rtl/regbus_gpio.v",
+      "sha256": "77eecf0be001d3aeb1257788f86c017da75beb814a8ad8e28641c0ea1e0adcf3"
+    },
+    {
+      "file": "gateware/rtl/sysinfo.v",
+      "sha256": "f0425089b02780cb44bb174b4c4198b7771f3d8953ef43b5783e062bf9fadf59"
+    },
+    {
+      "file": "gateware/rtl/uart_rx.v",
+      "sha256": "c6bbad344236494a298ea7fe654b26272ae19db020b809ae5a9b5f9327fbd20f"
+    },
+    {
+      "file": "gateware/rtl/uart_tx.v",
+      "sha256": "e2e0eb2c93e486855c21126fe49051a8e58981c44f731d262b2c742aeca7fcf2"
+    },
+    {
+      "file": "gateware/rtl/uartbone_bridge.v",
+      "sha256": "89dbe55c9c73eea048ba5655a9963e95c43fb24fae603745b98ee6de09b411c4"
+    },
+    {
+      "file": "gateware/boards/tangnano9k/top.v",
+      "sha256": "bd2d6ef9102e393778e7d78edc6ce4bb39d6d7769b1f69225779db919cad46ab"
+    },
+    {
+      "file": "gateware/boards/tangnano9k/tangnano9k.cst",
+      "sha256": "63b7b019a5b64f91f70e53ad01929ac2ab3f00b7ee0175aac8aaa8503fb61a55"
+    }
+  ],
+  "tools": {
+    "yowasp-yosys": "0.70.0.0.post1259",
+    "yowasp-nextpnr-himbaechel-gowin": "0.11.1.0.post826",
+    "Apycula": "0.32",
+    "yowasp-runtime": "1.96",
+    "wasmtime": "47.0.1"
+  },
+  "python": "3.13.14",
+  "os": "Linux x86_64",
+  "bitstream_sha256": "0e15164811e398367ddab57c192050994d22d441b66fed5982290182d8e61ef8"
+}

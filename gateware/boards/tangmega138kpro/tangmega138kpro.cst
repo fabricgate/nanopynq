@@ -1,0 +1,30 @@
+// Tang Mega 138K Pro (SOM + Pro Dock). Pins from Sipeed's TangMega-138KPro-example (key_led, pro_ddr_test)
+// and LiteX's sipeed_tang_mega_138k_pro.py, checked on hardware 2026-11-21.
+IO_LOC "clk" P16;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=NONE BANK_VCCIO=3.3;
+
+// BL616 UART (Interface 1). FPGA tx = P15, rx = N16 (Amaranth's tang_mega_138k_pro_dock.py has them swapped).
+IO_LOC "uart_tx" P15;
+IO_PORT "uart_tx" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "uart_rx" N16;
+IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+// LED0..5, active-low.
+IO_LOC "led[0]" J14;
+IO_PORT "led[0]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[1]" R26;
+IO_PORT "led[1]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[2]" L20;
+IO_PORT "led[2]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[3]" M25;
+IO_PORT "led[3]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[4]" N21;
+IO_PORT "led[4]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "led[5]" N23;
+IO_PORT "led[5]" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// Dock buttons, active-low: btn[0] = S1, btn[1] = S2. S0 and S3 are not mapped yet (K16 and G16 are the candidates).
+IO_LOC "btn[0]" F15;
+IO_PORT "btn[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "btn[1]" G15;
+IO_PORT "btn[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;

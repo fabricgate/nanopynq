@@ -1,0 +1,26 @@
+# Build with: nanopynq build examples/tangnano9k_button_counter  ->  dist/button_counter.fs, dist/button_counter.npq, dist/build.json
+name = "button_counter"
+board = "tangnano9k"
+top = "top"
+# Read in this order; the order and the set of files change the bitstream. nanopynq:<file> is nanopynq's shared RTL.
+sources = [
+    "button_counter.v",
+    "nanopynq:base_regs.v",
+    "nanopynq:regbus_gpio.v",
+    "nanopynq:sysinfo.v",
+    "nanopynq:uart_rx.v",
+    "nanopynq:uart_tx.v",
+    "nanopynq:uartbone_bridge.v",
+    "top.v",
+]
+constraints = "tangnano9k.cst"
+
+# sys, leds and buttons are collected from base_regs. counter is the example's own RTL, so nanopynq has no description
+# of it: the IP is written whole here (spec 5.3).
+[ips.counter]
+base = "0x7000"
+type = "fabricgate:button_counter:1.0"
+addr_range = "0x8"
+parameters = { debounce_ms = 20 }
+registers.count0 = { offset = "0x0", width = 32, access = "ro", doc = "presses of button S1 since power-on" }
+registers.count1 = { offset = "0x4", width = 32, access = "ro", doc = "presses of button S2 since power-on" }

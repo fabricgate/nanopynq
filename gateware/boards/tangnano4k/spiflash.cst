@@ -1,0 +1,19 @@
+// Tang Nano 4K (GW1NSR-LV4CQN48PC7/I6). Pins per litex-boards / Apicula examples.
+// NOTE: led is 1 bit wide, and yosys/nextpnr name a 1-bit port "led", not "led[0]" (verified: "led[0]" -> Unconstrained IO).
+IO_LOC "clk" 45;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "led" 10;
+IO_PORT "led" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "btn[0]" 14;
+IO_LOC "btn[1]" 15;
+IO_PORT "btn[0]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+IO_PORT "btn[1]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+// SPI flash (P25Q32) on the configuration SPI pins: 1 MCLK, 2 MCS_N, 48 MO, 47 MI (IDE pin table)
+IO_LOC "flash_sck" 1;
+IO_PORT "flash_sck" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "flash_cs_n" 2;
+IO_PORT "flash_cs_n" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "flash_mosi" 48;
+IO_PORT "flash_mosi" IO_TYPE=LVCMOS33 PULL_MODE=NONE;
+IO_LOC "flash_miso" 47;
+IO_PORT "flash_miso" IO_TYPE=LVCMOS33 PULL_MODE=UP;

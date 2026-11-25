@@ -1,0 +1,144 @@
+{
+  "format": "nanopynq-design/1",
+  "board": "tangmega138kpro",
+  "bitstream": {
+    "file": "base.fs",
+    "sha256": "f2d03e4e626d58792938f16a1c78827d6bd49cdf73307a2fe24951a64b931e9c"
+  },
+  "link": {
+    "kind": "uart",
+    "baudrate": 115200
+  },
+  "design_id": "0x48e5d25b",
+  "ips": {
+    "sys": {
+      "base": "0x0000",
+      "type": "nanopynq:sysinfo:1.1",
+      "registers": {
+        "id": {
+          "offset": "0x0",
+          "width": 32,
+          "access": "ro"
+        },
+        "version": {
+          "offset": "0x4",
+          "width": 32,
+          "access": "ro"
+        },
+        "scratch": {
+          "offset": "0x8",
+          "width": 32,
+          "access": "rw"
+        },
+        "design_id": {
+          "offset": "0xc",
+          "width": 32,
+          "access": "ro"
+        }
+      }
+    },
+    "leds": {
+      "base": "0x1000",
+      "type": "nanopynq:gpio_out:1.0",
+      "parameters": {
+        "width": 6
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 6,
+          "access": "rw"
+        }
+      }
+    },
+    "buttons": {
+      "base": "0x2000",
+      "type": "nanopynq:gpio_in:1.0",
+      "parameters": {
+        "width": 2
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 2,
+          "access": "ro"
+        }
+      }
+    },
+    "ddr3_test": {
+      "base": "0x3000",
+      "type": "nanopynq:ddr3_test:1.0",
+      "registers": {
+        "ctrl": {
+          "offset": "0x0",
+          "width": 3,
+          "access": "wo"
+        },
+        "status": {
+          "offset": "0x4",
+          "width": 32,
+          "access": "ro"
+        },
+        "passes": {
+          "offset": "0x8",
+          "width": 16,
+          "access": "rw"
+        },
+        "start": {
+          "offset": "0xc",
+          "width": 28,
+          "access": "rw"
+        },
+        "length": {
+          "offset": "0x10",
+          "width": 29,
+          "access": "rw"
+        },
+        "errors": {
+          "offset": "0x14",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_addr": {
+          "offset": "0x18",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_data": {
+          "offset": "0x1c",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_exp": {
+          "offset": "0x20",
+          "width": 32,
+          "access": "ro"
+        },
+        "calib": {
+          "offset": "0x24",
+          "width": 32,
+          "access": "ro"
+        },
+        "wr_cycles": {
+          "offset": "0x28",
+          "width": 32,
+          "access": "ro"
+        },
+        "rd_cycles": {
+          "offset": "0x2c",
+          "width": 32,
+          "access": "ro"
+        }
+      }
+    },
+    "ddr3": {
+      "base": "0x40000000",
+      "addr_range": "0x40000000",
+      "type": "nanopynq:ddr3:1.0",
+      "parameters": {
+        "size": 1073741824
+      },
+      "registers": {}
+    }
+  }
+}

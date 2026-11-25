@@ -1,0 +1,107 @@
+name: CI
+
+# lint / unit / toolchain / sim を実行し、集約ジョブ "CI Success" で結果をまとめる。secret は使わない。
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_call: # release.yaml runs the whole CI before it publishes
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy
+
+  unit:
+    name: Unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      # 追加機能 fabricgate: 本物の SDK を使うテストはここでだけ動く。先に import して、スキップで通らないようにする
+      - run: uv sync --frozen --extra fabricgate
+      - run: uv run python -c "import fabricgate.sdk" && uv run pytest -q tests/test_fabricgate.py
+
+  toolchain:
+    name: Toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # YoWASP は初回実行時に WASM を最適化してこのディレクトリへキャッシュする
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/YoWASP
+          key: yowasp-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+      - run: uv sync --frozen --extra build
+      - run: uv run pytest -q -m toolchain
+
+  sim:
+    name: Sim
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # 手元と同じ oss-cad-suite の Icarus(14.0 devel)を使う。ubuntu-latest (24.04) の apt の 12.0 は、
+      # e-karge の ddr3_calib.sv の定数関数 pattern() を扱えない(「is not a constant function」)
+      - run: |
+          curl -fsSL https://github.com/YosysHQ/oss-cad-suite-build/releases/download/2026-11-15/oss-cad-suite-linux-x64-20261115.tgz | tar -xz -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/oss-cad-suite/bin" >> "$GITHUB_PATH"
+      - run: iverilog -V | head -1
+      - run: uv sync --frozen
+      - run: uv run pytest -q -m sim
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - run: uv build
+      - name: Check what the wheel and the sdist carry
+        shell: python3 {0}
+        run: |
+          import pathlib, tarfile, zipfile
+          dist = pathlib.Path("dist")
+          wheel = zipfile.ZipFile(next(dist.glob("*.whl"))).namelist()
+          sdist = tarfile.open(next(dist.glob("*.tar.gz"))).getnames()
+          # Every bundled design ships whole.
+          for d in sorted(pathlib.Path("src/nanopynq/data/designs").iterdir()):
+              for f in d.iterdir():
+                  assert f"nanopynq/data/designs/{d.name}/{f.name}" in wheel, (d.name, f.name)
+          # Only the package goes out: no tests, tools, gateware simulations, docs or reports.
+          top = {n.split("/")[1] for n in sdist if n.count("/") >= 1}
+          allowed = {"src", "licenses", "pyproject.toml", "pyproject.toml.orig", "README.md", "LICENSE",
+                     "THIRD_PARTY_NOTICES.md", "PKG-INFO", ""}
+          assert top <= allowed, sorted(top - allowed)
+          assert all(n.startswith(("nanopynq/", "nanopynq-")) for n in wheel), [n for n in wheel if not n.startswith("nanopynq")]
+          print(f"wheel: {len(wheel)} files, sdist: {len(sdist)} entries")
+      - name: Install the wheel into a clean environment
+        run: |
+          python3 -m venv "$RUNNER_TEMP/smoke"
+          "$RUNNER_TEMP/smoke/bin/pip" install -q dist/*.whl
+          "$RUNNER_TEMP/smoke/bin/nanopynq" --help > /dev/null
+          "$RUNNER_TEMP/smoke/bin/python" -c "import nanopynq"
+
+  ci-success:
+    name: CI Success
+    if: always()
+    needs: [lint, unit, toolchain, sim, build]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | grep -qE '"result": "(failure|cancelled)"' && exit 1
+          echo "all green"

@@ -1,0 +1,42 @@
+# Interim bundled board data (values from Apicula examples/Makefile and litex-boards pin definitions).
+tangnano9k:
+  device: GW1NR-LV9QN88PC6/I5
+  family: GW1N-9C
+  pack_device: GW1N-9C
+  synth_args: []
+  pack_args: ["-c"]
+  programmer: {tool: nanopynq, idcode: 0x0100481b, family: gw1n, board: tangnano9k}  # board: the openFPGALoader name
+  host_link: {kind: uart, baudrate: 115200, usb_vid: 0x0403, usb_pid: 0x6010, exclusive_with_jtag: true}
+  io_voltage: {clk: 3.3, uart: 3.3, led: 1.8, btn: 1.8}
+  clock_hz: 27000000
+tangnano4k:
+  device: GW1NSR-LV4CQN48PC7/I6
+  family: null
+  pack_device: GW1NS-4
+  synth_args: ["-nolutram", "-nowidelut"]
+  pack_args: ["-c", "--mspi_as_gpio"]
+  programmer: {tool: nanopynq, idcode: 0x0100981b, family: gw1n, board: tangnano4k}  # board: the openFPGALoader name
+  host_link: {kind: jtag, usb_vid: 0x0403, usb_pid: 0x6010}  # GW_JTAG ER1 over the onboard BL702
+  io_voltage: {clk: 3.3, uart: 3.3, led: 3.3, btn: 1.8}
+  clock_hz: 27000000
+tangnano20k:
+  device: GW2AR-LV18QN88C8/I7
+  family: GW2A-18C
+  pack_device: GW2A-18C
+  synth_args: ["-family", "gw2a"]
+  pack_args: ["-c"]
+  programmer: {tool: nanopynq, idcode: 0x0000081b, family: gw2a, board: tangnano20k}  # board: the openFPGALoader name
+  host_link: {kind: jtag, usb_vid: 0x0403, usb_pid: 0x6010}  # GW_JTAG ER1 over the onboard BL616
+  uart_link: {baudrate: 115200}  # the BL616's UART on FPGA pins 69 (TX) / 70 (RX): what nanopynq build designs use
+  io_voltage: {clk: 3.3, uart: 3.3, led: 3.3, btn: 3.3}
+  clock_hz: 27000000
+tangmega138kpro:  # Tang Mega 138K Pro (SOM + Pro Dock) only; the non-Pro Mega 138K and Console 138K share the IDCODE but not the pins
+  device: GW5AST-LV138FPG676AC1/I0
+  family: null
+  pack_device: GW5AST-138C
+  synth_args: ["-family", "gw5a"]
+  pack_args: ["-c", "--cpu_as_gpio"]
+  programmer: {tool: nanopynq, idcode: 0x0001081b, family: gw5a, board: tangmega138k, msb_first: true}  # board: the openFPGALoader name; msb_first: its BL616 is slow LSB first
+  host_link: {kind: uart, baudrate: 115200, usb_vid: 0x0403, usb_pid: 0x6010}  # onboard BL616, Interface 1
+  io_voltage: {clk: 3.3, uart: 3.3, led: 3.3, btn: 3.3}
+  clock_hz: 50000000

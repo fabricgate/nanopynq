@@ -1,0 +1,22 @@
+IO_LOC "clk" 45;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "led" 10;
+IO_PORT "led" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "btn[0]" 14;
+IO_LOC "btn[1]" 15;
+IO_PORT "btn[0]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+IO_PORT "btn[1]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+// SiP HyperRAM: placed by nextpnr from the chipdb (sip_cst); bank 3 is 1.8 V
+IO_PORT "O_hpram_ck[0]" IO_TYPE=LVCMOS18;
+IO_PORT "O_hpram_ck_n[0]" IO_TYPE=LVCMOS18;
+IO_PORT "O_hpram_cs_n[0]" IO_TYPE=LVCMOS18;
+IO_PORT "O_hpram_reset_n[0]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_rwds[0]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[0]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[1]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[2]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[3]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[4]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[5]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[6]" IO_TYPE=LVCMOS18;
+IO_PORT "IO_hpram_dq[7]" IO_TYPE=LVCMOS18;

@@ -1,0 +1,63 @@
+{
+  "design": "tangnano20k-sdram",
+  "command": "uv run python tools/build_base.py --board tangnano20k --design sdram --seed 1",
+  "commit": "365ab3991691c3974ca469011e27b84965997f81",
+  "dirty": false,
+  "seed": 1,
+  "sources": [
+    {
+      "file": "src/nanopynq/rtl/base_regs.v",
+      "sha256": "403f4fe94a5d3fd71c600c1603baf8bfdedbbfb81136067c7b31986c4f42fc3a"
+    },
+    {
+      "file": "src/nanopynq/rtl/jtag_bridge.v",
+      "sha256": "a309b674c1adc9f0204eed7c392cdad317775d4420007c586e64874d901437e1"
+    },
+    {
+      "file": "src/nanopynq/rtl/regbus_gpio.v",
+      "sha256": "77eecf0be001d3aeb1257788f86c017da75beb814a8ad8e28641c0ea1e0adcf3"
+    },
+    {
+      "file": "src/nanopynq/rtl/sdram_arb.v",
+      "sha256": "3dde364ddc0fea59124f693b38486ba19c6f05e155369075c67aae77e124926c"
+    },
+    {
+      "file": "src/nanopynq/rtl/sdram_ctrl.v",
+      "sha256": "48d3c5eb9bf0ea76dc6f225c58ddd6b95a62fe712df607d84a5ce1924b48e7d2"
+    },
+    {
+      "file": "src/nanopynq/rtl/sdram_port.v",
+      "sha256": "53be5634d81a0fc97648b5596c73465ca0d0a2e7b4e7bc1cbd7ae65e29423b50"
+    },
+    {
+      "file": "src/nanopynq/rtl/sdram_test.v",
+      "sha256": "b4611e933d8efea3d9d135941744fc4d8e82fd11ef5cd9d108df67e2c48e7b31"
+    },
+    {
+      "file": "src/nanopynq/rtl/sysinfo.v",
+      "sha256": "f0425089b02780cb44bb174b4c4198b7771f3d8953ef43b5783e062bf9fadf59"
+    },
+    {
+      "file": "gateware/boards/tangnano20k/sdram_top.v",
+      "sha256": "ebbd65347318a7ddf273acc886072c5e31e5ac3baf0a9663d1bb179467765e44"
+    },
+    {
+      "file": "gateware/boards/tangnano20k/tangnano20k.cst",
+      "sha256": "88cae5dcd25af2953f1d62cfc1e69250d60cb8a8e973f3785d1d99c19ce6b85e"
+    }
+  ],
+  "tools": {
+    "oss_cad_suite": "20261115",
+    "yosys": "Yosys 0.71+34 (git sha1 e419c4eef, Release, GNU /usr/bin/x86_64-w64-mingw32-g++ 15.2.1)",
+    "nextpnr": "\"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-92-g5e2718b6)",
+    "ovl_apycula_py_sha256": "581849bcb4c26f1aa8b783786b014fda05aa880d47a76198f6cae8cdeb3e875e",
+    "chipdb": {
+      "file": "chipdb-GW2A-18C.bin",
+      "sha256": "81b52a99f275e1a31a97a4ed6f266ed96a6509671e62f2fd5a2e896f2373635e"
+    },
+    "pack": "apycula==0.35 with PYTHONPATH=OVL"
+  },
+  "python": "3.14.3",
+  "os": "Windows AMD64",
+  "bitstream_sha256": "76e112f695343beec6d4836669877a4ebf55a66c349d8297cd98aa8a4ea469ec"
+}

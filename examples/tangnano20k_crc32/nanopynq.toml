@@ -1,0 +1,28 @@
+# Build with: nanopynq build examples/tangnano20k_crc32  ->  dist/crc32.fs, dist/crc32.npq, dist/build.json
+name = "crc32"
+board = "tangnano20k"
+top = "top"
+# Read in this order; the order and the set of files change the bitstream. nanopynq:<file> is nanopynq's shared RTL.
+sources = [
+    "../tangnano9k_crc32/crc32.v",  # the 9K example's RTL: the same circuit on the 20K
+    "nanopynq:base_regs.v",
+    "nanopynq:regbus_gpio.v",
+    "nanopynq:sysinfo.v",
+    "nanopynq:uart_rx.v",
+    "nanopynq:uart_tx.v",
+    "nanopynq:uartbone_bridge.v",
+    "top.v",
+]
+constraints = "tangnano20k.cst"
+
+# sys, leds and buttons are collected from base_regs. crc is the example's own RTL, so nanopynq has no description
+# of it: the IP is written whole here (spec 5.3).
+[ips.crc]
+base = "0x7000"
+type = "fabricgate:crc32:1.0"
+addr_range = "0x10"
+parameters = { polynomial = "0xedb88320" }
+registers.init = { offset = "0x0", width = 1, access = "wo", doc = "any write starts over: crc 0, length 0" }
+registers.data = { offset = "0x4", width = 8, access = "wo", doc = "the next byte" }
+registers.crc = { offset = "0x8", width = 32, access = "ro", doc = "CRC-32 of the bytes so far, as zlib.crc32" }
+registers.length = { offset = "0xc", width = 32, access = "ro", doc = "bytes written since init" }

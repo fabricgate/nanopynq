@@ -1,0 +1,76 @@
+[project]
+name = "nanopynq"
+version = "0.1.0"
+description = "PYNQ-style control of open-toolchain FPGA boards (Sipeed Tang Nano) over USB (UART or JTAG)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "licenses/*", "THIRD_PARTY_NOTICES.md"]
+dependencies = [
+    "libusb-package>=1.0.30",
+    "pyserial>=3.5",
+    "pyusb>=1.3",
+    "pyyaml>=6",
+]
+
+[project.urls]
+Homepage = "https://github.com/fabricgate/nanopynq"
+Issues = "https://github.com/fabricgate/nanopynq/issues"
+
+[project.scripts]
+nanopynq = "nanopynq.__main__:main"
+
+[project.optional-dependencies]
+build = ["yowasp-yosys==0.70.0.0.post1259", "yowasp-nextpnr-himbaechel-gowin==0.11.1.0.post826"]
+# Overlay("fabricgate://..."): needs fabricgate 0.7 or later, the first release that reads designs carrying a .npq.
+fabricgate = ["fabricgate>=0.7"]
+
+[dependency-groups]
+dev = [
+    "cocotb>=2.1.0",
+    "mypy>=1.10",
+    "pre-commit>=4.7.0",
+    "pytest",
+    "ruff>=0.6",
+    "types-pyserial>=3.5.0.20261122",
+    "types-pyyaml>=6.0.12.20261122",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+# tools/p0: bring-up prototypes kept as a record; several run with a shared preamble, so they do not lint alone.
+extend-exclude = ["tools/p0", "docs"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+# `bindto = [...]` is the PYNQ driver convention, which users copy into their own drivers.
+"src/nanopynq/drivers/*" = ["RUF012"]
+# Long lines here are data, not code: manifest templates written byte-for-byte into the bundled designs,
+# and JavaScript run in a page.
+"tools/build_base.py" = ["E501"]
+"tests/conftest.py" = ["E501"]
+"tests/test_webserial_js.py" = ["E501"]
+"tests/test_webusb_js.py" = ["E501"]
+"tests/test_pyodide_page.py" = ["E501"]
+
+[tool.ruff.format]
+# Code samples in Markdown keep their hand-aligned comments.
+exclude = ["*.md"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+# Not strict yet: functions without annotations are not checked. Tightening it is tracked in an issue.
+warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+# pyusb and libusb-package ship no type information; fabricgate is the optional extra (not installed by default).
+module = ["usb", "usb.*", "libusb_package", "fabricgate.*"]
+ignore_missing_imports = true
+
+[build-system]
+requires = ["uv_build>=0.10.12,<0.14.0"]
+build-backend = "uv_build"

@@ -1,0 +1,64 @@
+# The commands CI runs, for running them locally: https://taskfile.dev
+# `task verify` is what CI's Lint and Unit jobs check; `task test-toolchain` and `task test-sim` are its other jobs.
+version: "3"
+
+tasks:
+  install:
+    desc: Install the package and the development tools (uv.lock)
+    cmds:
+      - uv sync --frozen
+
+  lint:
+    desc: ruff check and ruff format --check
+    cmds:
+      - uv run --frozen ruff check .
+      - uv run --frozen ruff format --check .
+
+  format:
+    desc: Fix what ruff can, then format
+    cmds:
+      - uv run --frozen ruff check --fix .
+      - uv run --frozen ruff format .
+
+  typecheck:
+    desc: mypy
+    cmds:
+      - uv run --frozen mypy
+
+  test:
+    desc: Unit tests (no board, no build tools, no simulator)
+    cmds:
+      - uv run --frozen pytest -q {{.CLI_ARGS}}
+
+  test-toolchain:
+    desc: Tests that run the pinned YoWASP build tools (slow on the first run)
+    cmds:
+      - uv sync --frozen --extra build
+      - uv run --frozen pytest -q -m toolchain {{.CLI_ARGS}}
+
+  test-sim:
+    desc: The cocotb gateware simulations (needs Icarus Verilog 11 or later on PATH)
+    cmds:
+      - uv run --frozen pytest -q -m sim {{.CLI_ARGS}}
+
+  verify:
+    desc: lint, typecheck and the unit tests, as CI's Lint and Unit jobs
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test
+
+  build:
+    desc: Build the wheel and the sdist into dist/
+    cmds:
+      - uv build
+
+  hooks:
+    desc: Install the pre-commit hooks (.pre-commit-config.yaml) into this clone
+    cmds:
+      - uv run --frozen pre-commit install
+
+  hooks-all:
+    desc: Run every pre-commit hook on every file
+    cmds:
+      - uv run --frozen pre-commit run --all-files

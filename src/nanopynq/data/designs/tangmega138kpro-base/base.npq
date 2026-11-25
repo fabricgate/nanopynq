@@ -1,0 +1,69 @@
+{
+  "format": "nanopynq-design/1",
+  "board": "tangmega138kpro",
+  "bitstream": {
+    "file": "base.fs",
+    "sha256": "6bfbf7a4045831a46bb552027b1c5e7e6a58915e08c4e33569f8eccc969adc3c"
+  },
+  "link": {
+    "kind": "uart",
+    "baudrate": 115200
+  },
+  "design_id": "0xabf78d8c",
+  "ips": {
+    "sys": {
+      "base": "0x0000",
+      "type": "nanopynq:sysinfo:1.1",
+      "registers": {
+        "id": {
+          "offset": "0x0",
+          "width": 32,
+          "access": "ro"
+        },
+        "version": {
+          "offset": "0x4",
+          "width": 32,
+          "access": "ro"
+        },
+        "scratch": {
+          "offset": "0x8",
+          "width": 32,
+          "access": "rw"
+        },
+        "design_id": {
+          "offset": "0xc",
+          "width": 32,
+          "access": "ro"
+        }
+      }
+    },
+    "leds": {
+      "base": "0x1000",
+      "type": "nanopynq:gpio_out:1.0",
+      "parameters": {
+        "width": 6
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 6,
+          "access": "rw"
+        }
+      }
+    },
+    "buttons": {
+      "base": "0x2000",
+      "type": "nanopynq:gpio_in:1.0",
+      "parameters": {
+        "width": 2
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 2,
+          "access": "ro"
+        }
+      }
+    }
+  }
+}

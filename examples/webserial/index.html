@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nanopynq Web Serial panel</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+  fieldset { margin: 1rem 0; }
+  label { margin-right: 1rem; }
+  table { border-collapse: collapse; }
+  th, td { text-align: left; padding: .1rem .5rem; border-bottom: 1px solid #ccc; }
+  input[type=text] { width: 7rem; }
+  .lamp { display: inline-block; min-width: 4rem; padding: .2rem .6rem; margin-right: .5rem; border: 1px solid; border-radius: .3rem; }
+  .lamp[data-on="1"] { background: #1a7f37; color: #fff; }
+  #log { height: 14rem; overflow: auto; background: #f4f4f4; color: #111; padding: .5rem; font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>nanopynq Web Serial panel</h1>
+<p>Choose the <code>.npq</code> of the design programmed on the board, then connect. The page checks the file, then
+  checks that the board runs that design before it touches anything but <code>sys</code>. Chromium-based browsers only.</p>
+
+<p><label>Design file <input type="file" id="file" accept=".npq"></label></p>
+<p id="summary"></p>
+<p>
+  <button id="connect" disabled>Connect</button>
+  <button id="disconnect" disabled>Disconnect</button>
+  <span id="status" role="status">Choose a .npq file</span>
+</p>
+
+<div id="ips"></div>
+
+<h2>Log</h2>
+<div id="log" aria-live="polite"></div>
+
+<script src="uartbone.js"></script>
+<script src="npq.js"></script>
+<script src="panel.js"></script>
+<script>
+"use strict";
+const POLL_MS = 50;
+// The FT2232-compatible debugger of the Tang Nano. On Windows (9K) only its UART gets a port, with or without Zadig,
+// named after the debugger ("JTAG Debugger (COM3)"); where both interfaces get one, only one is the UART.
+const PORT_FILTERS = [{ usbVendorId: 0x0403, usbProductId: 0x6010 }];
+
+const $ = (id) => document.getElementById(id);
+const hex = panel.hex8;
+let scrolling = false;
+function log(msg) {
+  const t = new Date().toISOString().slice(11, 23);
+  $("log").append(`${t} ${msg}\n`);
+  if (scrolling) return;
+  scrolling = true; // a layout per line made a file with 3000 readable registers take a minute
+  setTimeout(() => { scrolling = false; $("log").scrollTop = $("log").scrollHeight; }, 100);
+}
+// Strings from the .npq are untrusted: elements are built with textContent only, never from HTML.
+function el(tag, text, attrs = {}) {
+  const e = document.createElement(tag);
+  if (text !== undefined) e.textContent = text;
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  return e;
+}
+
+// Web Serial has no read timeout or input flush, so a pump fills a buffer and readers wait on it.
+class SerialLink {
+  constructor(port) { this.port = port; this.buf = []; this.waiter = null; this.closed = false; }
+  async open(options) {
+    await this.port.open(options);
+    this.writer = this.port.writable.getWriter();
+    this.reader = this.port.readable.getReader();
+    this.pump = this._pump();
+  }
+  async _pump() {
+    try {
+      for (;;) {
+        const { value, done } = await this.reader.read();
+        if (done) break;
+        this.buf.push(...value);
+        if (this.waiter) this.waiter();
+      }
+    } catch (e) {
+      if (!this.closed) log(`read error: ${e.message}`);
+    }
+  }
+  resetInput() { this.buf.length = 0; }
+  write(bytes) {
+    if (this.closed) return Promise.reject(new Error("port closed"));
+    return this.writer.write(bytes);
+  }
+  async readExactly(n, timeoutMs) {
+    const deadline = performance.now() + timeoutMs;
+    while (this.buf.length < n) {
+      if (this.closed) throw new Error("port closed");
+      const left = deadline - performance.now();
+      if (left <= 0) throw new Error(`timeout: expected ${n} bytes, got ${this.buf.length}`);
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, left);
+        this.waiter = () => { clearTimeout(timer); resolve(); };
+      });
+      this.waiter = null;
+    }
+    return Uint8Array.from(this.buf.splice(0, n));
+  }
+  async close() {
+    this.closed = true;
+    if (this.waiter) this.waiter(); // a waiting read fails now, not at its timeout
+    try { await this.reader.cancel(); } catch {}
+    await this.pump;
+    try { this.reader.releaseLock(); this.writer.releaseLock(); } catch {}
+    try { await this.port.close(); } catch {}
+  }
+}
+
+// doc: the checked file. conn: the current connection, {doc, link, bone, lamps, timer}, from the Connect click on.
+// Everything started for a connection holds it and stops after an await when conn is no longer that one.
+let doc = null, conn = null;
+const live = (c) => conn === c;
+
+function setState({ connected, ready, text }) {
+  $("file").disabled = connected;
+  $("connect").disabled = connected || !ready;
+  $("disconnect").disabled = !connected;
+  $("status").textContent = text;
+}
+
+async function disconnect(c, text) {
+  if (!c || !live(c)) return;
+  conn = null;
+  clearTimeout(c.timer);
+  $("ips").replaceChildren();
+  $("disconnect").disabled = true; // Connect and the file stay disabled until the port is closed
+  if (c.link) {
+    await c.opening.catch(() => {}); // an unplug can come while open() is pending: close after it
+    await c.link.close();
+  }
+  if (conn) return; // a new connection started while this one was closing: its status stands
+  setState({ connected: false, ready: doc !== null, text });
+}
+
+function fail(c, e, prefix = "Stopped") {
+  if (!live(c)) return;
+  log(`error: ${e.message}`);
+  return disconnect(c, `${prefix}: ${e.message}`);
+}
+
+let choice = 0;
+$("file").addEventListener("change", async () => {
+  if (conn) { // the file of a connection does not change under it
+    log("file ignored: disconnect first, then choose the file");
+    $("file").value = "";
+    return;
+  }
+  const mine = ++choice; // a slower check of an earlier file must not overwrite this one
+  doc = null;
+  $("connect").disabled = true;
+  $("summary").replaceChildren();
+  const file = $("file").files[0];
+  if (!file) { setState({ connected: false, ready: false, text: "Choose a .npq file" }); return; }
+  try {
+    if (!globalThis.crypto?.subtle) {
+      throw new Error("this page needs crypto.subtle, which browsers give only to secure contexts: open it from a file, https:// or http://localhost");
+    }
+    // one byte more than the limit is enough to fail V1 without reading a huge file
+    const bytes = new Uint8Array(await file.slice(0, npq.MAX_BYTES + 1).arrayBuffer());
+    const checked = await npq.readNpq(bytes);
+    if (mine !== choice) return;
+    const sys = checked.ips.sys.type.split(":")[2];
+    const name = typeof checked.name === "string" ? `${checked.name}, ` : "";
+    $("summary").textContent = `${file.name}: ${name}board ${checked.board}, design_id ${checked.design_id}, ` +
+      `sysinfo ${sys}, link ${checked.link.kind}${checked.link.kind === "uart" ? ` ${checked.link.baudrate} bps` : ""}`;
+    panel.serialOptions(checked); // a jtag design stops here, before any port is asked for
+    doc = checked;
+    log(`${file.name}: checked, design_id ${doc.design_id}`);
+    setState({ connected: false, ready: true, text: "File checked. Connect to the board." });
+  } catch (e) {
+    if (mine !== choice) return;
+    const text = e instanceof npq.NpqError ? `Rejected ${file.name}: rule ${e.rule} at ${e.path || "(file)"}. ${e.message}`
+                                           : `Cannot use ${file.name}: ${e.message}`;
+    log(text);
+    setState({ connected: false, ready: false, text });
+  }
+});
+
+$("connect").addEventListener("click", async () => {
+  if (!("serial" in navigator)) { log("Web Serial is not available in this browser."); return; }
+  if (conn || !doc) return;
+  const c = { doc, link: null, bone: null, lamps: [], timer: null };
+  conn = c;
+  $("connect").disabled = $("file").disabled = true;
+  $("ips").replaceChildren();
+  let port;
+  try {
+    port = await navigator.serial.requestPort({ filters: PORT_FILTERS });
+  } catch (e) {
+    log(`no port chosen: ${e.message}`);
+    await disconnect(c, "No port chosen. Connect again to choose one.");
+    return;
+  }
+  try {
+    if (!live(c)) return;
+    const options = panel.serialOptions(c.doc);
+    const link = c.link = new SerialLink(port);
+    await (c.opening = link.open(options));
+    if (!live(c)) return;
+    c.bone = new UARTBone(link);
+    setState({ connected: true, ready: true, text: "Checking the board…" });
+    log(`opened at ${options.baudRate} bps`);
+    const got = await panel.checkBoard(c.doc, c.bone);
+    if (!live(c)) return;
+    log(`sys.id ${hex(got.id)}, sys.version ${hex(got.version)}, sys.design_id ${hex(got.designId)}: matches the file`);
+    await build(c, panel.plan(c.doc), got);
+    if (!live(c)) return;
+    setState({ connected: true, ready: true, text: `Connected: the board runs design ${c.doc.design_id}` });
+    if (c.lamps.length) poll(c);
+  } catch (e) {
+    await fail(c, e, "Not connected");
+  }
+});
+
+$("disconnect").addEventListener("click", () => disconnect(conn, "Disconnected"));
+
+async function build(c, widgets, got) {
+  // already read by the check, by address (sys is at 0x0)
+  const known = new Map([[0x0, got.id], [0x4, got.version], [0xc, got.designId]]);
+  for (const w of widgets) {
+    if (!live(c)) return;
+    const box = el("fieldset");
+    box.append(el("legend", `${w.name} (${w.type})`));
+    if (w.doc) box.append(el("p", w.doc, { class: "doc" }));
+    $("ips").append(box);
+    if (w.kind === "toggles") await buildToggles(c, box, w);
+    else if (w.kind === "lamps") buildLamps(c, box, w);
+    else await buildTable(c, box, w, w.name === "sys" ? known : new Map());
+  }
+}
+
+async function buildToggles(c, box, w) {
+  let state = w.autoRead ? await c.bone.read(w.addr) : 0;
+  const row = el("p");
+  for (let i = 0; i < w.count; i++) {
+    const label = el("label");
+    const input = el("input", undefined, { type: "checkbox" });
+    input.checked = !!(state & (1 << i));
+    input.addEventListener("change", async () => {
+      if (!live(c)) return;
+      state = (input.checked ? state | (1 << i) : state & ~(1 << i)) >>> 0;
+      try { await c.bone.write(w.addr, state); if (live(c)) log(`${w.name} <- ${hex(state)}`); } catch (e) { fail(c, e); }
+    });
+    label.append(input, ` ${i}`);
+    row.append(label);
+  }
+  box.append(row);
+}
+
+function buildLamps(c, box, w) {
+  const row = el("p");
+  const spans = [];
+  for (let i = 0; i < w.count; i++) {
+    const s = el("span", `${i}: off`, { class: "lamp", "data-on": "0" });
+    spans.push(s);
+    row.append(s);
+  }
+  box.append(row);
+  c.lamps.push({ w, spans });
+}
+
+async function buildTable(c, box, w, known) {
+  if (!w.registers.length) { box.append(el("p", "No registers.")); return; }
+  const table = el("table");
+  const head = el("tr");
+  for (const h of ["Register", "Address", "Access", "Value", "", "Write", "Description"]) head.append(el("th", h));
+  table.append(head);
+  const auto = [];
+  for (const r of w.registers) {
+    const tr = el("tr");
+    const value = el("code", "—");
+    const label = `${w.name}.${r.name}`;
+    const read = async () => {
+      if (!live(c)) return;
+      try {
+        const v = await c.bone.read(r.addr);
+        if (!live(c)) return;
+        value.textContent = hex(v);
+        log(`${label} -> ${hex(v)}`);
+      } catch (e) { fail(c, e); }
+    };
+    const readCell = el("td");
+    if (r.read) {
+      const b = el("button", r.readEffect ? "Read (changes state)" : "Read", { "aria-label": `Read ${label}` });
+      b.addEventListener("click", read);
+      readCell.append(b);
+    }
+    const writeCell = el("td");
+    if (r.write) {
+      const input = el("input", undefined, { type: "text", "aria-label": `Value for ${label}`, placeholder: "0x0" });
+      const b = el("button", "Write", { "aria-label": `Write ${label}` });
+      b.addEventListener("click", async () => {
+        const v = panel.parseValue(input.value, r.width);
+        if (!live(c)) return;
+        if (v === null) { $("status").textContent = `${label}: enter 0 .. 2^${r.width} - 1, decimal or 0x hex`; return; }
+        try { await c.bone.write(r.addr, v); if (live(c)) log(`${label} <- ${hex(v)}`); } catch (e) { fail(c, e); }
+      });
+      writeCell.append(input, " ", b);
+    }
+    const access = r.access + (r.readEffect ? ", read changes state" : "");
+    tr.append(el("td", r.name), el("td", hex(r.addr)), el("td", access), el("td"), readCell, writeCell, el("td", r.doc));
+    tr.children[3].append(value);
+    table.append(tr);
+    if (known.has(r.addr)) value.textContent = hex(known.get(r.addr));
+    else if (r.autoRead) auto.push(read);
+  }
+  box.append(table);
+  if (auto.length) {
+    const b = el("button", "Read all", { "aria-label": `Read all registers of ${w.name} that are safe to read` });
+    b.addEventListener("click", async () => { for (const f of auto) { if (!live(c)) return; await f(); } });
+    const row = el("p");
+    row.append(b);
+    box.append(row);
+    for (const f of auto) { if (!live(c)) return; await f(); }
+  }
+}
+
+async function poll(c) {
+  if (!live(c)) return;
+  try {
+    // the FPGA can be reprogrammed while the port stays open (another tab, Python): stop before using another design
+    await panel.checkBoard(c.doc, c.bone, "the board stopped answering (reprogrammed, reset or unplugged?)");
+    if (!live(c)) return;
+    for (const { w, spans } of c.lamps) {
+      const v = await c.bone.read(w.addr);
+      if (!live(c)) return; // disconnected meanwhile
+      spans.forEach((s, i) => {
+        const on = (v >>> i) & 1;
+        s.dataset.on = on;
+        s.textContent = `${i}: ${on ? "on" : "off"}`;
+      });
+    }
+    c.timer = setTimeout(poll, POLL_MS, c);
+  } catch (e) { fail(c, e); }
+}
+
+if ("serial" in navigator) {
+  navigator.serial.addEventListener("disconnect", (e) => {
+    if (conn && conn.link && e.target === conn.link.port) disconnect(conn, "Board unplugged"); // not another serial device
+  });
+}
+else log("Web Serial is not available in this browser: use Chrome or Edge.");
+document.body.dataset.ready = "1";
+</script>
+</body>

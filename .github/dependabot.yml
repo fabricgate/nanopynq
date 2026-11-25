@@ -1,0 +1,24 @@
+version: 2
+# minor / patch はエコシステムごとに 1 本の PR にまとめ、週次の更新で CI が 1 回で済むようにする。
+# major は壊れやすいので個別の PR のままにする。
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # YoWASP のビルドツールは pyproject.toml で == 固定している。版が変わると生成される
+    # ビットストリームが変わるので、同梱デザインの作り直しと実機確認とあわせて手で上げる。
+    ignore:
+      - dependency-name: "yowasp-*"
+    groups:
+      python-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]

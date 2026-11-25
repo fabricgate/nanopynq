@@ -1,0 +1,23 @@
+name: Feature request
+description: A new board, driver, design or feature.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you want to do
+      description: The task you are trying to get done, and what is missing for it.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: How it could work
+      description: The API, command or design you have in mind, if any. For a new board, link its schematic or pinout.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Contributing
+      options:
+        - label: I can test this on the board.
+        - label: I would like to send a pull request for it.

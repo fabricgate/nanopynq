@@ -1,0 +1,29 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{yaml,yml,json,toml,js,mjs,html,css}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# Jupyter writes notebooks with a one-space indent.
+[*.ipynb]
+indent_size = 1
+
+# Kept byte-for-byte: build.json records the sha256 of each .v / .cst, and the bundled designs and
+# third-party license texts are shipped as they are. Leave them to the tools that write them.
+[{*.v,*.sv,*.cst,*.fs,*.npq,src/nanopynq/data/designs/**,licenses/**}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+indent_style = unset
+indent_size = unset

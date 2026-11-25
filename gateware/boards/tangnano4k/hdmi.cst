@@ -1,0 +1,27 @@
+// Tang Nano 4K (GW1NSR-LV4CQN48PC7/I6). Pins per litex-boards / Apicula examples.
+// NOTE: led is 1 bit wide, and yosys/nextpnr name a 1-bit port "led", not "led[0]" (verified: "led[0]" -> Unconstrained IO).
+IO_LOC "clk" 45;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+IO_LOC "led" 10;
+IO_PORT "led" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8;
+IO_LOC "btn[0]" 14;
+IO_LOC "btn[1]" 15;
+IO_PORT "btn[0]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+IO_PORT "btn[1]" IO_TYPE=LVCMOS18 PULL_MODE=UP;
+// HDMI connector (Bank2, 2.5 V, true LVDS): pairs from Sipeed's TangNano-4K-example camera_hdmi/src/dk_video.cst
+IO_LOC "tmds_clk_p" 28;
+IO_LOC "tmds_clk_n" 27;
+IO_LOC "tmds_d_p[0]" 30;
+IO_LOC "tmds_d_n[0]" 29;
+IO_LOC "tmds_d_p[1]" 32;
+IO_LOC "tmds_d_n[1]" 31;
+IO_LOC "tmds_d_p[2]" 35;
+IO_LOC "tmds_d_n[2]" 34;
+IO_PORT "tmds_clk_p" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_clk_n" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_p[0]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_n[0]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_p[1]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_n[1]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_p[2]" IO_TYPE=LVDS25 PULL_MODE=NONE;
+IO_PORT "tmds_d_n[2]" IO_TYPE=LVDS25 PULL_MODE=NONE;

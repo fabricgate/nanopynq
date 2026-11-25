@@ -1,0 +1,10 @@
+# nanopynq/rtl/pwm_timer.v. clock_hz (the bus clock) is not in the RTL: nanopynq.toml gives it.
+type = "nanopynq:pwm_timer:1.0"
+module = "pwm_timer"
+base = "=BASE"
+user_parameters = ["clock_hz"]
+registers.ctrl = { offset = "0x0", width = 1, access = "rw" }
+registers.period = { offset = "0x4", width = 32, access = "rw" }
+registers.duty = { offset = "0x8", width = 32, access = "rw" }
+registers.count = { offset = "0xc", width = 32, access = "ro" }
+registers.wraps = { offset = "0x10", width = 32, access = "ro" }

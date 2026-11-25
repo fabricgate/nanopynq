@@ -1,0 +1,47 @@
+# examples/tangnano9k_pwm/nanopynq.toml before #44, every ip by hand (design_id 0x556fae35): it must keep working.
+name = "pwm"
+board = "tangnano9k"
+top = "top"
+# Read in this order; the order and the set of files change the bitstream. nanopynq:<file> is nanopynq's shared RTL.
+sources = [
+    "nanopynq:base_regs.v",
+    "nanopynq:pwm_timer.v",
+    "nanopynq:regbus_gpio.v",
+    "nanopynq:sysinfo.v",
+    "nanopynq:uart_rx.v",
+    "nanopynq:uart_tx.v",
+    "nanopynq:uartbone_bridge.v",
+    "top.v",
+]
+constraints = "tangnano9k.cst"
+
+# The IPs as the host sees them (spec 5.3): the same fields as the ips of a .npq, addresses as hex strings.
+[ips.sys]
+base = "0x0000"
+type = "nanopynq:sysinfo:1.1"
+registers.id = { offset = "0x0", width = 32, access = "ro" }
+registers.version = { offset = "0x4", width = 32, access = "ro" }
+registers.scratch = { offset = "0x8", width = 32, access = "rw" }
+registers.design_id = { offset = "0xc", width = 32, access = "ro" }
+
+[ips.leds]
+base = "0x1000"
+type = "nanopynq:gpio_out:1.0"
+parameters = { width = 5 }
+registers.data = { offset = "0x0", width = 5, access = "rw" }
+
+[ips.buttons]
+base = "0x2000"
+type = "nanopynq:gpio_in:1.0"
+parameters = { width = 2 }
+registers.data = { offset = "0x0", width = 2, access = "ro" }
+
+[ips.pwm]
+base = "0x7000"
+type = "nanopynq:pwm_timer:1.0"
+parameters = { clock_hz = 27000000 }
+registers.ctrl = { offset = "0x0", width = 1, access = "rw" }
+registers.period = { offset = "0x4", width = 32, access = "rw" }
+registers.duty = { offset = "0x8", width = 32, access = "rw" }
+registers.count = { offset = "0xc", width = 32, access = "ro" }
+registers.wraps = { offset = "0x10", width = 32, access = "ro" }

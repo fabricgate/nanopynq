@@ -1,0 +1,21 @@
+# Build with: nanopynq build examples/tangnano20k_pwm  ->  dist/pwm.fs, dist/pwm.npq, dist/build.json
+name = "pwm"
+board = "tangnano20k"
+top = "top"
+# Read in this order; the order and the set of files change the bitstream. nanopynq:<file> is nanopynq's shared RTL.
+sources = [
+    "nanopynq:base_regs.v",
+    "nanopynq:pwm_timer.v",
+    "nanopynq:regbus_gpio.v",
+    "nanopynq:sysinfo.v",
+    "nanopynq:uart_rx.v",
+    "nanopynq:uart_tx.v",
+    "nanopynq:uartbone_bridge.v",
+    "top.v",
+]
+constraints = "tangnano20k.cst"
+
+# The IPs as the host sees them (spec 5.3) are collected from the RTL: sys, leds and buttons from base_regs, pwm
+# from pwm_timer's BASE (named by its npq_name attribute in top.v). Only what the RTL does not hold goes here.
+[ips.pwm]
+parameters = { clock_hz = 27000000 }

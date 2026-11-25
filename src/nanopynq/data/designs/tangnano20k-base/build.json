@@ -1,0 +1,47 @@
+{
+  "design": "tangnano20k-base",
+  "command": "uv run python tools/build_base.py --board tangnano20k --design base --seed 1",
+  "commit": "efbb1374a86c25c2231d384f386029ff6e61b856",
+  "dirty": false,
+  "seed": 1,
+  "sources": [
+    {
+      "file": "src/nanopynq/rtl/base_regs.v",
+      "sha256": "403f4fe94a5d3fd71c600c1603baf8bfdedbbfb81136067c7b31986c4f42fc3a"
+    },
+    {
+      "file": "src/nanopynq/rtl/jtag_bridge.v",
+      "sha256": "a309b674c1adc9f0204eed7c392cdad317775d4420007c586e64874d901437e1"
+    },
+    {
+      "file": "src/nanopynq/rtl/regbus_gpio.v",
+      "sha256": "77eecf0be001d3aeb1257788f86c017da75beb814a8ad8e28641c0ea1e0adcf3"
+    },
+    {
+      "file": "src/nanopynq/rtl/sysinfo.v",
+      "sha256": "f0425089b02780cb44bb174b4c4198b7771f3d8953ef43b5783e062bf9fadf59"
+    },
+    {
+      "file": "gateware/boards/tangnano20k/top.v",
+      "sha256": "1f36368a1f40314fd853730a423bf3101c0983553ec9048ece41810e5cb300e0"
+    },
+    {
+      "file": "gateware/boards/tangnano20k/tangnano20k.cst",
+      "sha256": "88cae5dcd25af2953f1d62cfc1e69250d60cb8a8e973f3785d1d99c19ce6b85e"
+    }
+  ],
+  "tools": {
+    "oss_cad_suite": "20261115",
+    "yosys": "Yosys 0.71+34 (git sha1 e419c4eef, Release, GNU /usr/bin/x86_64-w64-mingw32-g++ 15.2.1)",
+    "nextpnr": "\"nextpnr-himbaechel\" -- Next Generation Place and Route (Version nextpnr-0.11.1-92-g5e2718b6)",
+    "ovl_apycula_py_sha256": "581849bcb4c26f1aa8b783786b014fda05aa880d47a76198f6cae8cdeb3e875e",
+    "chipdb": {
+      "file": "chipdb-GW2A-18C.bin",
+      "sha256": "81b52a99f275e1a31a97a4ed6f266ed96a6509671e62f2fd5a2e896f2373635e"
+    },
+    "pack": "apycula==0.35 with PYTHONPATH=OVL"
+  },
+  "python": "3.11.15",
+  "os": "Windows AMD64",
+  "bitstream_sha256": "e20f970dba0966f384d82e789a38db454c61e9c43786dc2157cb979fc354c496"
+}

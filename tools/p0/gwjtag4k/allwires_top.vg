@@ -1,0 +1,18 @@
+module top(tms_pad_i, tck_pad_i, tdi_pad_i, tdo_pad_o, tck, tdi, tlr, rti1, rti2, sdr, pdr, udr, en1, en2, tdo1, tdo2);
+output tck, tdi, tlr, rti1, rti2, sdr, pdr, udr, en1, en2;
+input tdo1, tdo2;
+input tms_pad_i, tck_pad_i, tdi_pad_i;
+output tdo_pad_o;
+wire w_tck, w_tdi, w_tlr, w_rti1, w_rti2, w_sdr, w_pdr, w_udr, w_en1, w_en2, w_tdo1, w_tdo2;
+wire tms_c, tck_c, tdi_c, tdo_c;
+GW_JTAG u_gw_jtag(.tms_pad_i(tms_c), .tck_pad_i(tck_c), .tdi_pad_i(tdi_c), .tdo_pad_o(tdo_c),
+  .tck_o(w_tck), .tdi_o(w_tdi), .test_logic_reset_o(w_tlr), .run_test_idle_er1_o(w_rti1),
+  .run_test_idle_er2_o(w_rti2), .shift_dr_capture_dr_o(w_sdr), .pause_dr_o(w_pdr), .update_dr_o(w_udr),
+  .enable_er1_o(w_en1), .enable_er2_o(w_en2), .tdo_er1_i(w_tdo1), .tdo_er2_i(w_tdo2));
+OBUF o0(.I(w_tck), .O(tck));   OBUF o1(.I(w_tdi), .O(tdi));   OBUF o2(.I(w_tlr), .O(tlr));
+OBUF o3(.I(w_rti1), .O(rti1)); OBUF o4(.I(w_rti2), .O(rti2)); OBUF o5(.I(w_sdr), .O(sdr));
+OBUF o6(.I(w_pdr), .O(pdr));   OBUF o7(.I(w_udr), .O(udr));   OBUF o8(.I(w_en1), .O(en1));
+OBUF o9(.I(w_en2), .O(en2));
+IBUF pj0(.I(tms_pad_i), .O(tms_c)); IBUF pj1(.I(tck_pad_i), .O(tck_c)); IBUF pj2(.I(tdi_pad_i), .O(tdi_c)); OBUF pj3(.I(tdo_c), .O(tdo_pad_o));
+IBUF i0(.I(tdo1), .O(w_tdo1)); IBUF i1(.I(tdo2), .O(w_tdo2));
+endmodule

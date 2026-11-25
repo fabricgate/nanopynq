@@ -1,0 +1,14 @@
+schema: fabricgate-platform/v1
+runtime: nanopynq
+board: tangnano4k
+device_family: gw1ns-4
+design_ref: local/tangnano4k-camstream:0.1.0
+artifacts: {bitstream: {file: base.fs, sha256: 48be43c921f327b038ac9d0d72e09bf086f13ac373510dafeb5dd912178967d0}}
+transport: jtag
+ips:
+  sys:     {base: "0x0000", type: "nanopynq:sysinfo:1.0", registers: {id: {offset: "0x0", width: 32, access: ro}, version: {offset: "0x4", width: 32, access: ro}, scratch: {offset: "0x8", width: 32, access: rw}}}
+  leds:    {base: "0x1000", type: "nanopynq:gpio_out:1.0", parameters: {width: 1}, registers: {data: {offset: "0x0", width: 1, access: rw}}}
+  buttons: {base: "0x2000", type: "nanopynq:gpio_in:1.0", parameters: {width: 2}, registers: {data: {offset: "0x0", width: 2, access: ro}}}
+  cam_i2c:  {base: "0x3000", type: "nanopynq:i2c_master:1.0", registers: {cmd: {offset: "0x0", width: 16, access: wo}, status: {offset: "0x4", width: 16, access: ro}}}
+  cam_dvp:  {base: "0x4000", type: "nanopynq:dvp:1.0", registers: {ctrl: {offset: "0x0", width: 4, access: rw}, frames: {offset: "0x4", width: 32, access: ro}, pclks: {offset: "0x8", width: 32, access: ro}, lines: {offset: "0xc", width: 32, access: ro}}}
+  cam_ring: {base: "0x20000", addr_range: "0x2000", type: "nanopynq:frame_ring:1.0", parameters: {slot_words: 16384, slots: 256, window: 1024}, registers: {ctrl: {offset: "0x0", width: 2, access: wo}, wseq: {offset: "0x4", width: 32, access: ro}, rseq: {offset: "0x8", width: 32, access: rw}, dropped: {offset: "0xc", width: 32, access: ro}, fetch: {offset: "0x10", width: 32, access: wo}, status: {offset: "0x14", width: 3, access: ro}, slot_len: {offset: "0x18", width: 24, access: ro}, slot_info: {offset: "0x1c", width: 32, access: ro}}, streams: {video: {dir: read, mtu: 400, register: window, framing: slot-header32}}}

@@ -1,0 +1,29 @@
+# Build with: nanopynq build examples/tangnano20k_chaser  ->  dist/chaser.fs, dist/chaser.npq, dist/build.json
+name = "chaser"
+board = "tangnano20k"
+top = "top"
+# Read in this order; the order and the set of files change the bitstream. nanopynq:<file> is nanopynq's shared RTL.
+sources = [
+    "../tangnano9k_chaser/chaser.v",  # the 9K example's RTL: the same circuit on the 20K
+    "nanopynq:base_regs.v",
+    "nanopynq:regbus_gpio.v",
+    "nanopynq:sysinfo.v",
+    "nanopynq:uart_rx.v",
+    "nanopynq:uart_tx.v",
+    "nanopynq:uartbone_bridge.v",
+    "top.v",
+]
+constraints = "tangnano20k.cst"
+
+# sys, leds and buttons are collected from base_regs. chaser is the example's own RTL, so nanopynq has no description
+# of it: the IP is written whole here (spec 5.3).
+[ips.chaser]
+base = "0x7000"
+type = "fabricgate:chaser:1.0"
+addr_range = "0x14"
+parameters = { clock_hz = 27000000, width = 6 }
+registers.ctrl = { offset = "0x0", width = 2, access = "rw", doc = "[0] run, [1] reverse; 0 in [0] clears steps and gives the LEDs back to leds" }
+registers.pattern = { offset = "0x4", width = 6, access = "rw", doc = "the LEDs to light; a write restarts the chase from it" }
+registers.rate = { offset = "0x8", width = 16, access = "rw", doc = "steps per second, 0 holds" }
+registers.current = { offset = "0xc", width = 6, access = "ro", doc = "the chaser's pattern now; on the LEDs only while ctrl[0] is 1" }
+registers.steps = { offset = "0x10", width = 32, access = "ro", doc = "steps since run was set" }

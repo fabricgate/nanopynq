@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nanopynq in Pyodide</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 48rem; margin: 2rem auto; padding: 0 1rem; }
+  textarea { box-sizing: border-box; width: 100%; height: 12rem; font: 14px/1.4 ui-monospace, monospace; }
+  #out { min-height: 6rem; max-height: 20rem; overflow: auto; background: #f4f4f4; color: #111; padding: .5rem;
+         font: 13px/1.4 ui-monospace, monospace; white-space: pre-wrap; }
+</style>
+</head>
+<body data-state="loading">
+<h1>nanopynq in Pyodide (spike)</h1>
+<p>Runs nanopynq's Python in the page and talks to a Tang Nano 9K over Web Serial. Program the board with the CLI
+  first (<code>Overlay("base", board="tangnano9k")</code> in Python, or openFPGALoader); here <code>Overlay</code> does
+  not program it (<code>download=False</code>). Chromium-based browsers only. Serve the folder with
+  <code>serve.py</code>.</p>
+<p>Mode <strong id="mode"></strong>: <span id="mode-text"></span></p>
+<p>
+  <button id="port">Choose port</button>
+  <button id="run" disabled>Run</button>
+  <button id="stop" disabled>Stop</button>
+  <span id="status" role="status">Loading Pyodide and nanopynq…</span>
+</p>
+<p><label for="code">Python</label></p>
+<textarea id="code" spellcheck="false">ol = Overlay("base", board="tangnano9k")
+ol.leds[0].on()
+print("button 0:", ol.buttons[0].read())
+import time
+for _ in range(10):
+    ol.leds[1].toggle()
+    time.sleep(0.2)
+ol.close()
+</textarea>
+<h2>Output</h2>
+<pre id="out" aria-live="polite"></pre>
+
+<script type="module">
+import { Link } from "./link.mjs";
+
+const MODES = {
+  a: "Pyodide in a Worker, waiting on shared memory (needs the COOP / COEP headers)",
+  b: "Pyodide in the page, waiting with JSPI (no headers; the page freezes while Python computes without I/O)",
+};
+const $ = (id) => document.getElementById(id);
+const mode = new URLSearchParams(location.search).get("mode") ?? (crossOriginIsolated ? "a" : "b");
+const link = new Link();
+const spike = window.spike = { mode, link, wheel: null, load: null }; // for the tests and the console
+const print = (text) => { $("out").append(text + "\n"); };
+// Stop writes SIGINT (2) here: Pyodide's interrupt buffer in mode A, the flag page.py checks in mode B
+const interrupt = new Uint8Array(crossOriginIsolated ? new SharedArrayBuffer(1) : new ArrayBuffer(1));
+let runCode;
+
+function setState(state, text) {
+  document.body.dataset.state = state;
+  $("status").textContent = text;
+  $("run").disabled = state !== "ready";
+  $("stop").disabled = state !== "running";
+}
+
+$("mode").textContent = mode.toUpperCase();
+$("mode-text").textContent = MODES[mode] ?? "unknown: use ?mode=a or ?mode=b";
+$("port").addEventListener("click", async () => {
+  if (!("serial" in navigator)) { print("Web Serial is not available in this browser: use Chrome or Edge."); return; }
+  try {
+    link.port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x0403, usbProductId: 0x6010 }] });
+    print("port chosen");
+  } catch (e) {
+    print(`no port chosen: ${e.message}`);
+  }
+});
+$("run").addEventListener("click", async () => {
+  $("out").textContent = "";
+  interrupt[0] = 0;
+  setState("running", "Running…");
+  try {
+    await runCode($("code").value);
+  } catch (e) {
+    print(e.message);
+  }
+  setState("ready", "Ready");
+});
+$("stop").addEventListener("click", () => { interrupt[0] = 2; });
+
+function startWorker() {
+  const sab = new SharedArrayBuffer(16 + 65536);
+  const ctl = new Int32Array(sab, 0, 4), data = new Uint8Array(sab, 16);
+  const worker = new Worker("worker.mjs", { type: "module" });
+  let queue = Promise.resolve(), done = null;
+
+  async function serve({ seq, op, args }) { // one port call of the worker, in the order they come
+    let out = new Uint8Array(0), failed = 0;
+    try {
+      out = (await link[op](...args)) ?? out;
+    } catch (e) {
+      failed = 1;
+      out = new TextEncoder().encode(e.message);
+    } finally { // always answer, or the worker waits for ever
+      const n = Math.min(out.length, data.length);
+      data.set(out.subarray(0, n));
+      ctl[1] = failed;
+      ctl[2] = n;
+      Atomics.store(ctl, 0, seq);
+      Atomics.notify(ctl, 0);
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    worker.onerror = (e) => reject(new Error(`worker: ${e.message}`));
+    worker.onmessage = ({ data: m }) => {
+      if (m.type === "io") queue = queue.then(() => serve(m));
+      else if (m.type === "out") print(m.text);
+      else if (m.type === "done") done();
+      else if (m.type === "error") reject(new Error(m.text));
+      else if (m.type === "ready") {
+        spike.load = m.load;
+        resolve((code) => new Promise((r) => { done = r; worker.postMessage({ type: "run", code }); }));
+      }
+    };
+    worker.postMessage({ type: "init", sab, interrupt: interrupt.buffer });
+  });
+}
+
+async function startHere() {
+  const { loadNanopynq, WHEEL } = await import("./pyload.mjs");
+  spike.wheel = WHEEL;
+  const nap = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  const stopped = () => { const s = interrupt[0] === 2; interrupt[0] = 0; return s; };
+  // No py.setInterruptBuffer here: Pyodide would raise the KeyboardInterrupt in its own asyncio code (page.py)
+  const { py, ns, load } = await loadNanopynq(print, "from pyodide.ffi import run_sync\n_check = stop_check(stopped)\n" +
+    "time.sleep = stoppable_sleep(nap, _check, run_sync)\nOverlay = overlay_factory(link, run_sync, _check)",
+    { link, nap, stopped });
+  spike.load = load;
+  return async (code) => {
+    await py.loadPackagesFromImports(code);
+    await py.runPythonAsync(code, { globals: ns });
+  };
+}
+
+try {
+  if (mode === "a" && !crossOriginIsolated) {
+    throw new Error("mode A needs crossOriginIsolated (the COOP / COEP headers): serve the page with serve.py, or use ?mode=b");
+  }
+  if (!MODES[mode]) throw new Error(`unknown mode ${mode}: use ?mode=a or ?mode=b`);
+  runCode = mode === "a" ? await startWorker() : await startHere();
+  spike.load.total = performance.now(); // from the start of the navigation
+  setState("ready", "Ready");
+} catch (e) {
+  print(e.message);
+  setState("error", `Not loaded: ${e.message}`);
+}
+</script>
+</body>
+</html>

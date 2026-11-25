@@ -1,0 +1,133 @@
+{
+  "format": "nanopynq-design/1",
+  "board": "tangnano20k",
+  "bitstream": {
+    "file": "base.fs",
+    "sha256": "76e112f695343beec6d4836669877a4ebf55a66c349d8297cd98aa8a4ea469ec"
+  },
+  "link": {
+    "kind": "jtag"
+  },
+  "design_id": "0x1ef753ef",
+  "ips": {
+    "sys": {
+      "base": "0x0000",
+      "type": "nanopynq:sysinfo:1.1",
+      "registers": {
+        "id": {
+          "offset": "0x0",
+          "width": 32,
+          "access": "ro"
+        },
+        "version": {
+          "offset": "0x4",
+          "width": 32,
+          "access": "ro"
+        },
+        "scratch": {
+          "offset": "0x8",
+          "width": 32,
+          "access": "rw"
+        },
+        "design_id": {
+          "offset": "0xc",
+          "width": 32,
+          "access": "ro"
+        }
+      }
+    },
+    "leds": {
+      "base": "0x1000",
+      "type": "nanopynq:gpio_out:1.0",
+      "parameters": {
+        "width": 6
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 6,
+          "access": "rw"
+        }
+      }
+    },
+    "buttons": {
+      "base": "0x2000",
+      "type": "nanopynq:gpio_in:1.0",
+      "parameters": {
+        "width": 2
+      },
+      "registers": {
+        "data": {
+          "offset": "0x0",
+          "width": 2,
+          "access": "ro"
+        }
+      }
+    },
+    "sdram_test": {
+      "base": "0x3000",
+      "type": "nanopynq:sdram_test:1.0",
+      "registers": {
+        "ctrl": {
+          "offset": "0x0",
+          "width": 3,
+          "access": "wo"
+        },
+        "status": {
+          "offset": "0x4",
+          "width": 32,
+          "access": "ro"
+        },
+        "passes": {
+          "offset": "0x8",
+          "width": 16,
+          "access": "rw"
+        },
+        "start": {
+          "offset": "0xc",
+          "width": 21,
+          "access": "rw"
+        },
+        "length": {
+          "offset": "0x10",
+          "width": 22,
+          "access": "rw"
+        },
+        "errors": {
+          "offset": "0x14",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_addr": {
+          "offset": "0x18",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_data": {
+          "offset": "0x1c",
+          "width": 32,
+          "access": "ro"
+        },
+        "first_err_exp": {
+          "offset": "0x20",
+          "width": 32,
+          "access": "ro"
+        },
+        "rd_lat": {
+          "offset": "0x24",
+          "width": 3,
+          "access": "rw"
+        }
+      }
+    },
+    "sdram": {
+      "base": "0x800000",
+      "addr_range": "0x800000",
+      "type": "nanopynq:sdram:1.0",
+      "parameters": {
+        "size": 8388608
+      },
+      "registers": {}
+    }
+  }
+}

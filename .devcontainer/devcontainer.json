@@ -1,0 +1,34 @@
+{
+  // Lint, tests, the gateware simulations and the YoWASP builds run in here. Programming a board needs
+  // its USB device, which a container sees only on a Linux host: do that from the host.
+  "name": "nanopynq",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    // Node 20 or later: the tests run the browser code (examples/webserial, webusb) in Node.
+    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    // `task` for Taskfile.yaml.
+    "ghcr.io/devcontainers-extra/features/go-task:1": {}
+  },
+  "containerEnv": {
+    // The workspace is a bind mount: copy instead of hard-linking from uv's cache.
+    "UV_LINK_MODE": "copy",
+    // The environment lives outside the workspace, so it never replaces a .venv made on the host.
+    "UV_PROJECT_ENVIRONMENT": "/home/vscode/.venv",
+    // Ubuntu 24.04's own Python rather than a download (any version pyproject.toml allows works).
+    "UV_PYTHON": "3.12"
+  },
+  "postCreateCommand": "uv sync --frozen --extra build",
+  "customizations": {
+    "vscode": {
+      "settings": { "python.defaultInterpreterPath": "/home/vscode/.venv/bin/python" },
+      "extensions": [
+        "charliermarsh.ruff",
+        "editorconfig.editorconfig",
+        "ms-python.python",
+        "ms-python.mypy-type-checker",
+        "ms-toolsai.jupyter",
+        "task.vscode-task"
+      ]
+    }
+  }
+}

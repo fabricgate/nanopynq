@@ -1,0 +1,44 @@
+# Checks run before each commit: `task hooks` installs them, `task hooks-all` runs them on every file.
+# ruff and mypy run from the project's environment (uv.lock), so they match CI.
+
+# Kept byte-for-byte (see .editorconfig): HDL sources, bitstreams, the bundled designs, license texts.
+exclude: '\.(v|sv|cst|fs|npq)$|^src/nanopynq/data/designs/|^licenses/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: '\.ipynb$|^\.devcontainer/devcontainer\.json$'  # JSON with comments
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format --force-exclude
+        language: system
+        types_or: [python, pyi, jupyter]
+      - id: mypy
+        name: mypy
+        entry: uv run --frozen mypy
+        language: system
+        types: [python]
+        pass_filenames: false
