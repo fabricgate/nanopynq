@@ -7,9 +7,10 @@ rules reports the lowest number. Nothing is repaired: a broken file raises NpqEr
 import hashlib
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NoReturn
+from typing import Any, NoReturn
 
 from nanopynq.errors import ManifestError, NpqError
 from nanopynq.manifest import DEFAULT_ADDR_RANGE, Manifest, load_manifest
@@ -43,7 +44,7 @@ SECTIONS = ("parameters", "registers", "streams")
 class Npq(Manifest):
     """A checked .npq: the Manifest fields (ips in the same DefaultIP description shape) plus the link and design_id."""
 
-    link: dict
+    link: dict[str, Any]
     design_id: int
 
 
@@ -51,22 +52,22 @@ def _fail(rule: str, where: str, detail: str) -> NoReturn:
     raise NpqError(rule, where, detail)
 
 
-def _is_int(v) -> bool:
+def _is_int(v: Any) -> bool:
     return type(v) is int  # bool is not an integer here
 
 
-def _matches(pattern: re.Pattern, v) -> bool:
+def _matches(pattern: re.Pattern[str], v: Any) -> bool:
     return type(v) is str and pattern.fullmatch(v) is not None
 
 
-def _items(v):
+def _items(v: Any) -> Iterable[tuple[Any, Any]]:
     return v.items() if type(v) is dict else ()
 
 
 # ---------------------------------------------------------------- V1: the bytes and the text
 
 
-def _not_json(token: str):
+def _not_json(token: str) -> NoReturn:
     _fail("V1", "", f"{token} is not JSON")
 
 
@@ -76,13 +77,13 @@ def _int_literal(s: str) -> int:
     return int(s)
 
 
-def _float_literal(s: str):
+def _float_literal(s: str) -> NoReturn:
     _fail("V1", "", f"number with a fraction or exponent ({s[:20]})")
 
 
-def _no_duplicates(pairs: list) -> dict:
+def _no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     # json hands over every pair, including the ones a duplicate would hide, with escapes already decoded
-    d = {}
+    d: dict[str, Any] = {}
     for k, v in pairs:
         if k in d:
             _fail("V1", "", f"two items named {k!r} in one object")
@@ -90,7 +91,7 @@ def _no_duplicates(pairs: list) -> dict:
     return d
 
 
-def _depth(v, d: int) -> int:
+def _depth(v: Any, d: int) -> int:
     if type(v) not in (dict, list):
         return d - 1
     if d > MAX_DEPTH:
@@ -98,7 +99,7 @@ def _depth(v, d: int) -> int:
     return max((_depth(x, d + 1) for x in (v.values() if type(v) is dict else v)), default=d)
 
 
-def _parse(data: bytes):
+def _parse(data: bytes) -> dict[str, Any]:
     """V1 up to a JSON value. json.loads passes every number token and every object's pairs to the hooks, so the hooks
     see the whole text; with duplicates rejected, the value holds all of the text, so the depth is checked on it."""
     if len(data) > MAX_BYTES:
@@ -131,12 +132,12 @@ def _parse(data: bytes):
 # ---------------------------------------------------------------- V2, V3: the top level
 
 
-def _v2(doc: dict) -> None:
+def _v2(doc: dict[str, Any]) -> None:
     if type(doc.get("format")) is not str or doc["format"] != FORMAT:
         _fail("V2", "format", f"must be {FORMAT!r}, got {doc.get('format')!r}")
 
 
-def _v3(doc: dict) -> None:
+def _v3(doc: dict[str, Any]) -> None:
     for k in ("board", "bitstream", "link", "design_id", "ips"):
         if k not in doc:
             _fail("V3", k, "missing")
@@ -177,7 +178,7 @@ def _v3(doc: dict) -> None:
             _fail("V3", k, "must be a string")
 
 
-def _v3_ips(ips) -> None:
+def _v3_ips(ips: Any) -> None:
     if type(ips) is not dict or not ips:
         _fail("V3", "ips", "must be an object with at least one IP")
 
@@ -185,7 +186,7 @@ def _v3_ips(ips) -> None:
 # ---------------------------------------------------------------- V4 to V10: ips
 
 
-def _v4(v, where: str) -> None:
+def _v4(v: Any, where: str) -> None:
     t = type(v)
     if t is dict:
         for k, x in v.items():
@@ -203,12 +204,12 @@ def _v4(v, where: str) -> None:
         _fail("V4", where, f"{v!r} is not an integer, string, boolean, list or object")
 
 
-def _name(n, where: str) -> None:
+def _name(n: Any, where: str) -> None:
     if type(n) is not str or n == "doc" or not NAME.fullmatch(n):
         _fail("V5", where, f"bad name {n!r}")
 
 
-def _v5(ips: dict) -> None:
+def _v5(ips: dict[str, Any]) -> None:
     for ipn, ip in ips.items():
         _name(ipn, f"ips.{ipn}")
         for sec in SECTIONS:
@@ -220,7 +221,7 @@ def _v5(ips: dict) -> None:
                             _name(f, f"ips.{ipn}.streams.{n}.{f}")
 
 
-def _v6(ips: dict) -> None:
+def _v6(ips: dict[str, Any]) -> None:
     for ipn, ip in ips.items():
         p = f"ips.{ipn}"
         if type(ip) is not dict:
@@ -246,7 +247,7 @@ def _v6(ips: dict) -> None:
                     _fail("V6", f"{rp}.{k}", "missing")
 
 
-def _hex(v, where: str) -> int:
+def _hex(v: Any, where: str) -> int:
     if not _matches(HEX, v):
         _fail("V7", where, f"must be a lowercase 0x hex string, got {v!r}")
     n = int(v, 16)
@@ -257,7 +258,7 @@ def _hex(v, where: str) -> int:
     return n
 
 
-def _v7(ips: dict) -> None:
+def _v7(ips: dict[str, Any]) -> None:
     for ipn, ip in ips.items():
         p = f"ips.{ipn}"
         base = _hex(ip["base"], f"{p}.base")
@@ -271,11 +272,11 @@ def _v7(ips: dict) -> None:
                 _fail("V7", f"{p}.registers.{rn}.offset", "offset + 4 is more than addr_range")
 
 
-def _scalar(v) -> bool:
+def _scalar(v: Any) -> bool:
     return type(v) in (int, str, bool)
 
 
-def _v8(ips: dict) -> None:
+def _v8(ips: dict[str, Any]) -> None:
     for ipn, ip in ips.items():
         p = f"ips.{ipn}"
         if not _matches(TYPE, ip["type"]):
@@ -314,12 +315,12 @@ def _v8(ips: dict) -> None:
                     _fail("V8", f"{sp}.{f}", "must be an integer, string or boolean")
 
 
-def _span(ip: dict) -> tuple[int, int]:
+def _span(ip: dict[str, Any]) -> tuple[int, int]:
     base = int(ip["base"], 16)
     return base, base + int(ip.get("addr_range", "0x1000"), 16)
 
 
-def _v9(ips: dict) -> None:
+def _v9(ips: dict[str, Any]) -> None:
     seen: list[tuple[str, int, int]] = []
     for ipn, ip in ips.items():
         b, e = _span(ip)
@@ -328,7 +329,7 @@ def _v9(ips: dict) -> None:
                 _fail("V9", f"ips.{ipn}.base", f"address range overlaps ips.{other}")
         seen.append((ipn, b, e))
     for ipn, ip in ips.items():
-        offsets = set()
+        offsets: set[int] = set()
         for rn, r in ip.get("registers", {}).items():
             off = int(r["offset"], 16)  # by value: "0x4" and "0x04" are the same offset
             if off in offsets:
@@ -336,7 +337,7 @@ def _v9(ips: dict) -> None:
             offsets.add(off)
 
 
-def _v10(ips: dict) -> None:
+def _v10(ips: dict[str, Any]) -> None:
     if "sys" not in ips:
         _fail("V10", "ips.sys", "missing")
     sys_ = ips["sys"]
@@ -357,7 +358,7 @@ def _v10(ips: dict) -> None:
             _fail("V10", f"ips.sys.registers.{rn}.read_effect", "must not be true")
 
 
-def _check_ips(ips: dict) -> None:
+def _check_ips(ips: dict[str, Any]) -> None:
     _v4(ips, "ips")
     for rule in (_v5, _v6, _v7, _v8, _v9, _v10):
         rule(ips)
@@ -366,7 +367,7 @@ def _check_ips(ips: dict) -> None:
 # ---------------------------------------------------------------- design_id (spec 5.4)
 
 
-def _canonical(ips: dict) -> bytes:
+def _canonical(ips: dict[str, Any]) -> bytes:
     """Spec 5.4 steps 1-3, on ips that pass V4-V10."""
     norm = {
         n: {
@@ -390,11 +391,11 @@ def _canonical(ips: dict) -> bytes:
     return json.dumps(norm, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 
-def _compute_id(ips: dict) -> int:
+def _compute_id(ips: dict[str, Any]) -> int:
     return int.from_bytes(hashlib.sha256(_canonical(ips)).digest()[:4], "big")
 
 
-def design_id(ips: dict) -> int:
+def design_id(ips: dict[str, Any]) -> int:
     """The design_id of `ips` as written in a .npq (hex strings for addresses). Checks V4-V10 first (spec 5.4 step 0);
     raises ManifestError when the value is reserved (step 5: change the ips, e.g. add a parameter)."""
     _v3_ips(ips)
@@ -410,13 +411,13 @@ def design_id(ips: dict) -> int:
 # ---------------------------------------------------------------- reading and writing
 
 
-def _check(doc: dict) -> None:
+def _check(doc: dict[str, Any]) -> None:
     _v2(doc)
     _v3(doc)
     _check_ips(doc["ips"])
 
 
-def parse_npq(data: bytes) -> dict:
+def parse_npq(data: bytes) -> dict[str, Any]:
     """V1-V11 on the contents of a .npq; returns the JSON document as written (spec 5.7 steps 1-2)."""
     doc = _parse(data)
     _check(doc)
@@ -426,7 +427,7 @@ def parse_npq(data: bytes) -> dict:
     return doc
 
 
-def _description(name: str, ip: dict) -> dict:
+def _description(name: str, ip: dict[str, Any]) -> dict[str, Any]:
     """The DefaultIP description, as nanopynq.manifest builds it; read_effect only when true, docs dropped."""
     return {
         "name": name,
@@ -490,7 +491,7 @@ def load_design(path: Path, check_bitstream: bool = True) -> Manifest:
     return load_manifest(path)
 
 
-def write_npq(bitstream: Path, board: str, link: dict, ips: dict) -> Path:
+def write_npq(bitstream: Path, board: str, link: dict[str, Any], ips: dict[str, Any]) -> Path:
     """Spec 5.6 step 5: write `<stem>.npq` next to the built .fs and return its path.
 
     The output is JSON with a 2-space indent, LF and a final newline, UTF-8 without escapes; the top-level keys are in

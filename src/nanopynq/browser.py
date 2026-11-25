@@ -12,21 +12,25 @@ next. Not imported from pyodide, so it runs (and is tested) in CPython.
 import functools
 import time
 from collections.abc import Callable
+from typing import Any, ParamSpec, TypeVar
 
 from nanopynq.overlay import Overlay
 
 TIMEOUT_MS = 1000  # the timeout nanopynq gives pyserial (overlay._open_serial)
 NAP_S = 0.05  # how soon a Stop ends a sleep
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
 
-def _stop_unwrapped(f):
+
+def _stop_unwrapped(f: Callable[_P, _R]) -> Callable[_P, _R]:
     """Pyodide reports a KeyboardInterrupt that lands while it converts between Python and JavaScript as an error
     caused by it (ConversionError): raise the KeyboardInterrupt itself, so that a Stop is a Stop to the cell."""
 
     @functools.wraps(f)
-    def call(*args):
+    def call(*args: _P.args, **kwargs: _P.kwargs) -> _R:
         try:
-            return f(*args)
+            return f(*args, **kwargs)
         except Exception as e:
             if isinstance(e.__cause__, KeyboardInterrupt):
                 raise e.__cause__ from None
@@ -38,7 +42,7 @@ def _stop_unwrapped(f):
 class WebSerialPort:
     """What UARTBone uses of pyserial.Serial (write, read, reset_input_buffer), and close."""
 
-    def __init__(self, link, baudrate: int):
+    def __init__(self, link: Any, baudrate: int) -> None:
         self._link = link
         try:
             self._open(baudrate)
@@ -68,7 +72,7 @@ class WebSerialPort:
         self._link.close()
 
 
-def overlay_factory(link) -> Callable[..., Overlay]:
+def overlay_factory(link: Any) -> Callable[..., Overlay]:
     """Overlay for the page: the board is programmed beforehand (download=False), the port is the one the page chose."""
     return functools.partial(
         Overlay, download=False, port="webserial", open_port=lambda _port, baudrate: WebSerialPort(link, baudrate)
