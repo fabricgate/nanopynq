@@ -63,43 +63,8 @@ exclude = ["*.md"]
 [tool.mypy]
 python_version = "3.11"
 files = ["src"]
-# Not strict yet: functions without annotations are not checked. Tightening it is tracked in an issue.
+strict = true
 warn_unused_configs = true
-
-[[tool.mypy.overrides]]
-# The modules already typed for strict mode (issue #3), held to it so they stay typed. These are the flags --strict
-# sets, less warn_redundant_casts (global only). When every module is here, set strict = true and drop this.
-module = [
-  "nanopynq",
-  "nanopynq.__main__",
-  "nanopynq.boards",
-  "nanopynq.browser",
-  "nanopynq.camera",
-  "nanopynq.doctor",
-  "nanopynq.drivers.*",
-  "nanopynq.errors",
-  "nanopynq.gowin",
-  "nanopynq.ip",
-  "nanopynq.manifest",
-  "nanopynq.npq",
-  "nanopynq.overlay",
-  "nanopynq.program",
-  "nanopynq.resolve",
-  "nanopynq.sensors.*",
-  "nanopynq.transport.*",
-]
-disallow_any_generics = true
-disallow_subclassing_any = true
-disallow_untyped_calls = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
-warn_unused_ignores = true
-warn_return_any = true
-implicit_reexport = false
-strict_equality = true
-extra_checks = true
 
 [[tool.mypy.overrides]]
 # pyusb and libusb-package ship no type information; fabricgate is the optional extra (not installed by default).

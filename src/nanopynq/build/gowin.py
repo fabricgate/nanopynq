@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 from nanopynq.boards import BoardInfo
@@ -41,7 +42,7 @@ def build_gowin(
     out_dir: Path,
     top: str = "top",
     seed: int = 1,
-    run=subprocess.run,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
     design_id: int | None = None,
 ) -> Path:
     """Verilog -> .fs via YoWASP yosys / nextpnr-himbaechel-gowin / Apicula gowin_pack.
