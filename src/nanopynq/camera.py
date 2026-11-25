@@ -9,9 +9,17 @@ Built in the notebook from the overlay's IPs, e.g.
 import struct
 import time
 import zlib
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 from nanopynq.errors import I2CError
 from nanopynq.sensors.ov2640 import OV2640
+
+if TYPE_CHECKING:
+    from nanopynq.drivers.capture import Capture
+    from nanopynq.drivers.dvp import DVP
+    from nanopynq.drivers.frame_ring import FrameRing
+    from nanopynq.drivers.i2c import I2C
 
 
 def _png_chunk(kind: bytes, data: bytes) -> bytes:
@@ -36,7 +44,15 @@ class Frame:
 
 
 class Camera:
-    def __init__(self, i2c, capture, dvp, sensor_cls=OV2640, y_phase: str = "even", ring=None):
+    def __init__(
+        self,
+        i2c: "I2C",
+        capture: "Capture | None",
+        dvp: "DVP",
+        sensor_cls: type[OV2640] = OV2640,
+        y_phase: str = "even",
+        ring: "FrameRing | None" = None,
+    ) -> None:
         self.capture, self.dvp, self.y_phase, self.ring = capture, dvp, y_phase, ring
         self.sensor = sensor_cls(i2c)
         self.width: int | None = None
@@ -60,6 +76,8 @@ class Camera:
     def snapshot(self, timeout: float = 3.0) -> Frame:
         if self.width is None or self.height is None:  # start() sets both
             raise RuntimeError("call cam.start() first")
+        if self.capture is None:
+            raise RuntimeError("snapshot() needs the capture buffer: Camera(ol.cam_i2c, ol.cam_capture, ol.cam_dvp)")
         self.capture.arm()
         n = self.capture.wait(timeout)
         want = self.width * self.height
@@ -74,7 +92,7 @@ class Camera:
             raise RuntimeError(f"frame {seq} has {len(data)} bytes, expected {want} ({self.width}x{self.height})")
         return Frame(self.width, self.height, data, seq=seq)
 
-    def _ring_start(self) -> None:
+    def _ring_start(self) -> "FrameRing":
         if self.width is None:
             raise RuntimeError("call cam.start() first")
         if self.ring is None:
@@ -82,37 +100,38 @@ class Camera:
         self.bad = 0
         self.ring.reset()
         self.ring.enable()
+        return self.ring
 
-    def stream(self, n: int | None = None, timeout: float = 3.0):
+    def stream(self, n: int | None = None, timeout: float = 3.0) -> Iterator[Frame]:
         """Frames as the host can read them (n of them, or until the loop stops), oldest first. The ring
         keeps taking frames at the sensor's rate meanwhile and drops them when it is full (ring.dropped)."""
-        self._ring_start()
+        ring = self._ring_start()
         got = 0
         try:
             while n is None or got < n:
-                seq, data, bad = self.ring.next_frame(timeout)
+                seq, data, bad = ring.next_frame(timeout)
                 if bad:
                     self.bad += 1
                     continue
                 yield self._ring_frame(seq, data)
                 got += 1
         finally:
-            self.ring.enable(False)
+            ring.enable(False)
 
     def record(self, n: int, timeout: float | None = None) -> list[Frame]:
         """Take n frames at the sensor's rate into the ring, then read them all (bad ones left out)."""
-        self._ring_start()
+        ring = self._ring_start()
         t_end = time.monotonic() + (3.0 + n if timeout is None else timeout)
         try:
-            while self.ring.available() < n:
+            while ring.available() < n:
                 if time.monotonic() > t_end:
-                    raise TimeoutError(f"only {self.ring.available()} of {n} frames within the timeout")
+                    raise TimeoutError(f"only {ring.available()} of {n} frames within the timeout")
                 time.sleep(0.05)
         finally:
-            self.ring.enable(False)
+            ring.enable(False)
         frames = []
         for _ in range(n):
-            seq, data, bad = self.ring.next_frame()
+            seq, data, bad = ring.next_frame()
             if bad:
                 self.bad += 1
             else:

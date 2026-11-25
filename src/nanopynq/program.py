@@ -2,12 +2,13 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 from .boards import BoardInfo
 from .errors import ProgramError, ProgrammerNotFound
 from .gowin import load_sram, read_fs
-from .transport.jtag import open_jtag
+from .transport.jtag import Jtag, open_jtag
 
 _ENV = "NANOPYNQ_OPENFPGALOADER"
 
@@ -40,7 +41,7 @@ def find_openfpgaloader() -> Path:
     return Path(found)
 
 
-def program_sram(board: BoardInfo, bitstream: Path, open_jtag=open_jtag) -> None:
+def program_sram(board: BoardInfo, bitstream: Path, open_jtag: Callable[[int, int], Jtag] = open_jtag) -> None:
     """Load bitstream into the FPGA's SRAM the way boards.yaml's programmer.tool says: "nanopynq" is
     nanopynq's own Gowin sequence over the debugger's JTAG, "openfpgaloader" runs openFPGALoader.
     Pass programmer=program_sram_openfpgaloader to Overlay to use openFPGALoader for any board."""
@@ -59,7 +60,12 @@ def program_sram(board: BoardInfo, bitstream: Path, open_jtag=open_jtag) -> None
         jtag.close()  # never leave Interface 0 claimed: the bridge or openFPGALoader opens it next
 
 
-def program_sram_openfpgaloader(board: BoardInfo, bitstream: Path, run=subprocess.run, exe: Path | None = None) -> None:
+def program_sram_openfpgaloader(
+    board: BoardInfo,
+    bitstream: Path,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    exe: Path | None = None,
+) -> None:
     exe = exe or find_openfpgaloader()
     cmd = [str(exe), "-b", board.programmer["board"], str(bitstream)]
     r = run(cmd, capture_output=True, text=True)

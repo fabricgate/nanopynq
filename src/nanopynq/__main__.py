@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from nanopynq.boards import list_boards
-from nanopynq.doctor import default_checks, run_checks
+from nanopynq.doctor import Check, default_checks, run_checks
 from nanopynq.errors import BuildError, ManifestError
 
 
@@ -54,7 +54,7 @@ def build(folder: Path, check: bool = True) -> int:
     return 0
 
 
-def main(argv: list[str] | None = None, checks: dict | None = None) -> int:
+def main(argv: list[str] | None = None, checks: dict[str, Check] | None = None) -> int:
     p = argparse.ArgumentParser(prog="nanopynq")
     sub = p.add_subparsers(dest="cmd", required=True)
     d = sub.add_parser("doctor", help="check the setup for programming and talking to a board")

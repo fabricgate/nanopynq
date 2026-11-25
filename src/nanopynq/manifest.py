@@ -3,6 +3,7 @@
 import hashlib
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -16,14 +17,14 @@ class Manifest:
     board: str
     bitstream: Path
     sha256: str | None  # None when load_npq(check_bitstream=False) skipped the .fs
-    ips: dict[str, dict]
+    ips: dict[str, dict[str, Any]]
 
 
-def _int(v) -> int:
+def _int(v: Any) -> int:
     return int(v, 0) if isinstance(v, str) else int(v)
 
 
-def _streams(name: str, raw) -> dict:
+def _streams(name: str, raw: Any) -> dict[str, dict[str, Any]]:
     """ips.<ip>.streams.<name>: {dir: read|write, mtu: bytes > 0, ...}; other keys are kept as they are."""
     if raw is None:
         return {}
@@ -36,7 +37,7 @@ def _streams(name: str, raw) -> dict:
     return {s: dict(v) for s, v in raw.items()}
 
 
-def _ip(name: str, ip: dict) -> dict:
+def _ip(name: str, ip: dict[str, Any]) -> dict[str, Any]:
     return {
         "name": name,
         "type": ip["type"],

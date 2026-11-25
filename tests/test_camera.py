@@ -92,6 +92,12 @@ def test_stream_needs_a_ring():
         next(cam.stream())
 
 
+def test_snapshot_needs_the_capture_buffer():
+    cam = ring_camera(FakeRingBus(incoming=[]))
+    with pytest.raises(RuntimeError, match="capture buffer"):
+        cam.snapshot()
+
+
 def test_start_rejects_wrong_chip_id():
     with pytest.raises(I2CError, match="0x7FA2"):
         Camera(*parts(FakeCameraBus(chip_id=0x7FA2))).start()

@@ -3,8 +3,11 @@
 import sys
 import time
 import warnings
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, NoReturn, Self
 
-from nanopynq.boards import get_board, uart_link
+from nanopynq.boards import BoardInfo, get_board, uart_link
 from nanopynq.errors import (
     BoardNotResponding,
     BridgeError,
@@ -13,13 +16,14 @@ from nanopynq.errors import (
     PortOpenError,
     TransportTimeout,
 )
-from nanopynq.ip import driver_for
+from nanopynq.ip import DefaultIP, driver_for
 from nanopynq.npq import SYSINFO, Npq, load_design
 from nanopynq.program import program_sram
 from nanopynq.resolve import bundled_boards, resolve_design
+from nanopynq.transport import Transport
 from nanopynq.transport.jtagbridge import JTAGBridge
 from nanopynq.transport.serialport import find_port
-from nanopynq.transport.uartbone import UARTBone
+from nanopynq.transport.uartbone import SerialPort, UARTBone
 
 SYSINFO_ID = 0x4E505131
 SYS_VERSION, SYS_DESIGN_ID = 0x4, 0xC  # sys is at 0x0 (V10)
@@ -28,7 +32,7 @@ ID_RETRY_DELAY = 0.5
 _sleep = time.sleep  # tests patch this
 
 
-def _open_serial(port, baudrate):
+def _open_serial(port: str, baudrate: int) -> SerialPort:
     import serial
 
     return serial.Serial(port, baudrate, timeout=1.0)
@@ -46,21 +50,21 @@ def _open_hint() -> str:
 class Overlay:
     def __init__(
         self,
-        design="base",
+        design: str | Path = "base",
         board: str | None = None,
         download: bool = True,
         port: str | None = None,
-        transport=None,
-        programmer=program_sram,
-        open_port=None,
-        open_jtag=None,
-    ):
+        transport: Transport | None = None,
+        programmer: Callable[[BoardInfo, Path], None] = program_sram,
+        open_port: Callable[[str, int], SerialPort] | None = None,
+        open_jtag: Callable[[dict[str, Any]], JTAGBridge] | None = None,
+    ) -> None:
         if board is None and bundled_boards(str(design)):
             raise ValueError(
                 f"board is required for design {str(design)!r}; choose one of {bundled_boards(str(design))}"
             )
-        self._cache: dict = {}
-        self._link = None  # what close() closes: the serial port or the JTAG bridge
+        self._cache: dict[str, DefaultIP] = {}
+        self._link: JTAGBridge | SerialPort | None = None  # what close() closes: the serial port or the JTAG bridge
         self.design_dir = resolve_design(design, board)
         self.manifest = load_design(
             self.design_dir, check_bitstream=download
@@ -80,10 +84,9 @@ class Overlay:
         self._link_kind = link["kind"]  # the link in use, which on the 20K need not be host_link's
         if download:
             programmer(self.board, self.manifest.bitstream)
-        self._transport = transport
         if transport is None and link["kind"] == "jtag":
             try:  # PortNotFound / PortOpenError pass through: they carry their own next step
-                self._link = self._transport = (open_jtag or JTAGBridge.open)(link)
+                self._link = transport = (open_jtag or JTAGBridge.open)(link)
             except (TransportTimeout, BridgeError):
                 self._not_responding(None)
         elif transport is None:
@@ -94,7 +97,8 @@ class Overlay:
             except OSError as e:  # serial.SerialException is an OSError
                 raise PortOpenError(f"could not open serial port {port}: {e}. {_open_hint()}") from e
             self._link = serial_port
-            self._transport = UARTBone(serial_port, baud)
+            transport = UARTBone(serial_port, baud)
+        self._transport: Transport = transport
         try:
             self._check_id()
             self._check_design(download)
@@ -108,7 +112,7 @@ class Overlay:
             self.close()
             raise ManifestError("manifest has no 'sys' ip with an 'id' register")
         addr = sysinfo["phys_addr"] + sysinfo["registers"]["id"]["offset"]
-        got = None
+        got: int | BridgeError | None = None
         for attempt in range(ID_ATTEMPTS):
             if attempt:
                 _sleep(ID_RETRY_DELAY)
@@ -166,7 +170,7 @@ class Overlay:
                 f"the board runs another design: sys.design_id is {seen}, {where} has 0x{want:08x}. {fix}"
             )
 
-    def _not_responding(self, got) -> None:
+    def _not_responding(self, got: int | BridgeError | None) -> NoReturn:
         self.close()
         if got is None:
             seen = "no response"
@@ -195,10 +199,10 @@ class Overlay:
         )
 
     @property
-    def ip_dict(self) -> dict[str, dict]:
+    def ip_dict(self) -> dict[str, dict[str, Any]]:
         return self.manifest.ips
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:  # the bound driver; its class is known only at run time
         if (
             name.startswith("_") or name == "manifest" or name not in self.manifest.ips
         ):  # no recursion if __init__ failed
@@ -208,17 +212,17 @@ class Overlay:
             self._cache[name] = driver_for(desc["type"])(desc, self._transport)
         return self._cache[name]
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return sorted(set(super().__dir__()) | set(self.manifest.ips))
 
     def __repr__(self) -> str:
         rows = "\n".join(f"  {n}: {d['type']} @ 0x{d['phys_addr']:X}" for n, d in self.ip_dict.items())
         return f"Overlay(board={self.manifest.board!r}):\n{rows}"
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, *exc) -> None:
+    def __exit__(self, *exc: object) -> None:
         self.close()
 
     def close(self) -> None:
