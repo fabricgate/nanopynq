@@ -1,12 +1,22 @@
 """Host client for the LiteX UARTBone wire protocol (no LiteX dependency)."""
 
+from typing import Protocol, overload
+
 from nanopynq.errors import TransportTimeout
 
 _CMD = {"incr": (0x01, 0x02), "fixed": (0x03, 0x04)}  # burst -> (write, read)
 
 
+class SerialPort(Protocol):
+    """What UARTBone needs of a port: pyserial's Serial, or the browser's port (nanopynq.browser)."""
+
+    def reset_input_buffer(self) -> None: ...
+    def write(self, data: bytes, /) -> int | None: ...
+    def read(self, size: int = 1, /) -> bytes: ...
+
+
 class UARTBone:
-    def __init__(self, port, baudrate: int):
+    def __init__(self, port: SerialPort, baudrate: int) -> None:
         self.port = port
         self.baudrate = baudrate
 
@@ -25,6 +35,10 @@ class UARTBone:
             raise ValueError(f"burst must be 'incr' or 'fixed', not {burst!r}")
         return 4 if burst == "incr" else 0
 
+    @overload
+    def read(self, addr: int, length: None = None, burst: str = "incr") -> int: ...
+    @overload
+    def read(self, addr: int, length: int, burst: str = "incr") -> list[int]: ...
     def read(self, addr: int, length: int | None = None, burst: str = "incr") -> int | list[int]:
         step = self._check(addr, burst)
         n = 1 if length is None else length

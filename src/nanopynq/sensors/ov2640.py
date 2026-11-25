@@ -12,6 +12,11 @@ place); only YUV422 output and 4:3 sizes up to CIF (400x296 sensor window) are p
 """
 
 import time
+from collections.abc import Iterable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from nanopynq.drivers.i2c import I2C
 
 # ov2640_regs.h (subset)
 BANK_SEL = 0xFF
@@ -253,14 +258,14 @@ class OV2640:
     CHIP_ID = 0x2642  # PIDH 0x0A, PIDL 0x0B in the sensor bank
     VSYNC_FRAME_HIGH = True  # after OV2640_SETTINGS_CIF, VSYNC is high during the frame (measured)
 
-    def __init__(self, i2c, addr7: int = ADDR7):
+    def __init__(self, i2c: "I2C", addr7: int = ADDR7) -> None:
         self.i2c = i2c
         self.addr7 = addr7
 
     def _w(self, reg: int, value: int) -> None:
         self.i2c.write_reg8(self.addr7, reg, value)
 
-    def _table(self, table) -> None:
+    def _table(self, table: Iterable[tuple[int, int]]) -> None:
         for reg, value in table:
             self._w(reg, value)
 

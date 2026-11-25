@@ -5,7 +5,8 @@ operations, so another debugger (D2XX, CH552, CMSIS-DAP, ...) is one more class 
 open_jtag. Today Mpsse is the only one.
 """
 
-from typing import Protocol
+from collections.abc import Callable
+from typing import Any, Protocol
 
 
 class Jtag(Protocol):
@@ -38,7 +39,7 @@ class Jtag(Protocol):
         """Release the debugger."""
 
 
-def open_jtag(vid: int, pid: int, find=None) -> Jtag:
+def open_jtag(vid: int, pid: int, find: Callable[..., Any] | None = None) -> Jtag:
     """libusb first (Interface 0 on WinUSB after Zadig, or Linux); on Windows, if libusb finds the board but
     cannot open it (PortOpenError: e.g. Interface 0 is on Windows' own FTDI driver), FTDI's D2XX. libusb counts
     every board whatever its driver, so when it finds none or several (PortNotFound) D2XX is not tried: it could
