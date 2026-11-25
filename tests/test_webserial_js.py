@@ -96,6 +96,18 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   link.resetInput();
   out.afterReset = link.buf.length;
   out.timeout = await link.readExactly(4, 20).catch((e) => e.message);
+  // pyserial's read: what came within the time, at most n; at once when n are in
+  const some = link.readAtMost(4, 50);
+  port.rx.enqueue(Uint8Array.of(1, 2));
+  out.atMostShort = [...await some];
+  port.rx.enqueue(Uint8Array.of(3, 4, 5, 6, 7));
+  await tick();
+  const t1 = performance.now();
+  out.atMostFull = [...await link.readAtMost(4, 5000)];
+  out.atMostFast = performance.now() - t1 < 1000;
+  out.atMostLeft = [...link.buf];
+  link.resetInput();
+  out.atMostNone = [...await link.readAtMost(4, 20)];
   // close() ends a waiting read at once, and closing is not a read error
   const t0 = performance.now();
   const waiting = link.readExactly(4, 5000).catch((e) => e.message);
@@ -123,6 +135,24 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   await link.close();
   out.failedWhileClosing = closing;
   out.closedAfterFailure = port.closed;
+  // close() ends a waiting readAtMost at once too
+  port = fakePort();
+  link = new SerialLink(port);
+  await link.open({ baudRate: 115200 });
+  const t2 = performance.now();
+  const waitingAtMost = link.readAtMost(4, 5000).catch((e) => e.message);
+  await tick();
+  await link.close();
+  out.waitingAtMost = await waitingAtMost;
+  out.atMostClosedFast = performance.now() - t2 < 1000;
+  // a closed link does not read, even with bytes left in its buffer: pyserial raises on a closed port
+  port = fakePort();
+  link = new SerialLink(port);
+  await link.open({ baudRate: 115200 });
+  port.rx.enqueue(Uint8Array.of(9, 9));
+  await tick();
+  await link.close();
+  out.atMostAfterClose = await link.readAtMost(1, 20).then((b) => [...b], (e) => e.message);
   // without a callback the failure is dropped, not thrown
   port = fakePort();
   link = new SerialLink(port);
@@ -140,6 +170,10 @@ def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors(
     assert out["options"] == {"baudRate": 115200} and out["sent"] == [1, 2]
     assert out["answer"] == [0x4E, 0x50, 0x51, 0x31] and out["left"] == [0x99] and out["afterReset"] == 0
     assert out["timeout"] == "timeout: expected 4 bytes, got 0"
+    assert out["atMostShort"] == [1, 2] and out["atMostFull"] == [3, 4, 5, 6] and out["atMostFast"]
+    assert out["atMostLeft"] == [7] and out["atMostNone"] == []
+    assert out["atMostAfterClose"] == "port closed"
+    assert out["waitingAtMost"] == "port closed" and out["atMostClosedFast"]
     assert out["waiting"] == "port closed" and out["closedFast"] and out["closed"] == 1
     assert out["writeAfterClose"] == "port closed" and out["errorsAfterClose"] == []
     assert out["readErrors"] == ["device lost"]

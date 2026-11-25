@@ -1,5 +1,7 @@
 // A Web Serial port (navigator.serial) as transport/uartbone.js needs it: write(Uint8Array),
-// readExactly(n, timeoutMs) -> Uint8Array and resetInput(). The browser end of src/nanopynq/transport/serialport.py.
+// readExactly(n, timeoutMs) -> Uint8Array and resetInput(). readAtMost(n, timeoutMs) is pyserial's read, which
+// nanopynq's Python needs in the browser (src/nanopynq/browser.py, examples/pyodide). The browser end of
+// src/nanopynq/transport/serialport.py.
 // A classic script that defines one global, `SerialLink`, and is also a CommonJS module for Node.
 "use strict";
 
@@ -33,18 +35,30 @@ class SerialLink {
     return this.writer.write(bytes);
   }
   async readExactly(n, timeoutMs) {
+    await this._fill(n, timeoutMs);
+    if (this.buf.length < n) throw new Error(`timeout: expected ${n} bytes, got ${this.buf.length}`);
+    return Uint8Array.from(this.buf.splice(0, n));
+  }
+  // pyserial's read(n): what came within the time, at most n bytes (fewer, or none, at the timeout).
+  // A closed link throws "port closed", as pyserial raises on a closed port.
+  async readAtMost(n, timeoutMs) {
+    if (this.closed) throw new Error("port closed");
+    await this._fill(n, timeoutMs);
+    return Uint8Array.from(this.buf.splice(0, n));
+  }
+  // Waits until n bytes are in or the time is up; throws "port closed" when the link closes first.
+  async _fill(n, timeoutMs) {
     const deadline = performance.now() + timeoutMs;
     while (this.buf.length < n) {
       if (this.closed) throw new Error("port closed");
       const left = deadline - performance.now();
-      if (left <= 0) throw new Error(`timeout: expected ${n} bytes, got ${this.buf.length}`);
+      if (left <= 0) return;
       await new Promise((resolve) => {
         const timer = setTimeout(resolve, left);
         this.waiter = () => { clearTimeout(timer); resolve(); };
       });
       this.waiter = null;
     }
-    return Uint8Array.from(this.buf.splice(0, n));
   }
   async close() {
     this.closed = true;
