@@ -10,7 +10,7 @@ the Python package.
 | `connect.js` | The serial settings from a file, and the check that the board runs its design (global `npqConnect`) | the sysinfo check in `src/nanopynq/overlay.py` |
 | `controls.js` | The controls a design offers (toggles, lamps, register tables) and parsing a typed value (global `npqControls`) | (UI only; no Python counterpart) |
 | `transport/uartbone.js` | LiteX UARTBone client over any port with `write`, `readExactly` and `resetInput` (global `UARTBone`) | `src/nanopynq/transport/uartbone.py` |
-| `transport/webserial.js` | A Web Serial port as `uartbone.js` needs it (global `SerialLink`) | `src/nanopynq/transport/serialport.py` |
+| `transport/webserial.js` | A Web Serial port as `uartbone.js` needs it, and with pyserial's read (`readAtMost`) as nanopynq's Python needs it in the browser (global `SerialLink`; the Pyodide page in `examples/pyodide` uses it) | `src/nanopynq/transport/serialport.py` |
 | `transport/jtag.js` | JTAG over the onboard debugger with WebUSB, the JTAG bridge and SRAM loading | `src/nanopynq/transport/mpsse.py`, `jtagbridge.py`, `src/nanopynq/gowin.py` |
 
 Only `transport/webserial.js` (Web Serial) and `transport/jtag.js` (WebUSB) use a browser API. The rest runs
