@@ -48,6 +48,8 @@ def test_build_commands_for_9k(tmp_path):
         "family=GW1N-9C",
         "--vopt",
         "cst=" + Path("t.cst").resolve().as_posix(),
+        "--freq",
+        "27",
         "--seed",
         "1",
     ]
@@ -81,6 +83,12 @@ def test_4k_has_no_family_vopt_and_synth_flags(tmp_path):
     assert not any(a.startswith("family=") for a in calls[1])
     assert "-nolutram -nowidelut" in calls[0][2]
     assert "--mspi_as_gpio" in calls[2] and calls[2][2] == "GW1NS-4"
+
+
+def test_pnr_checks_timing_at_the_board_clock(tmp_path):
+    calls, run = recorder()
+    build_gowin([Path("top.v")], Path("t.cst"), get_board("tangmega138kpro"), tmp_path, run=run)
+    assert calls[1][calls[1].index("--freq") + 1] == "50"  # clock_hz 50000000; the 9K's 27 is in the test above
 
 
 @pytest.mark.parametrize("board", ["tangnano9k", "tangnano4k"])

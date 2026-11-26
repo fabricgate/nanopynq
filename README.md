@@ -296,10 +296,17 @@ your own modules are not read yet). The build prints the IPs and where each came
 The build checks the `ips` (a broken one stops with the rule and the place, e.g. `V9 at ips.pwm.base`),
 computes the design ID from them, builds it into the bitstream (the top's `DESIGN_ID`, handed down to
 `sysinfo`), and writes `dist/`: the bitstream, the metadata file (`.npq`, JSON) and `build.json` (the
-sources with their sha256, the tool versions and the seed). With the same sources and the tool versions
-recorded in `build.json`, the `.fs` and `.npq` come out the same byte for byte.
+sources with their sha256, the tool versions, the seed and the clock timing was checked at). With the
+same sources and the tool versions recorded in `build.json`, the `.fs` and `.npq` come out the same byte
+for byte.
 Intermediate files and the log of a failed tool go to `build/`. The link (UART, 115200 baud) comes from the
 board. Unknown keys in `nanopynq.toml` are errors.
+
+Place and route checks timing at the board's clock (27 MHz on the 9K and 20K, 50 MHz on the 138K Pro;
+nextpnr's `--freq`). A design too slow for it stops the build with nextpnr's
+`ERROR: Max frequency for clock '...': ... MHz (FAIL at 27.00 MHz)`. Every clock is checked at that
+frequency, a faster one your design makes with a PLL too: `nanopynq build` takes no timing constraints
+yet, so such a clock is not checked at its own frequency.
 
 Before synthesis, the build checks the `ips` against your Verilog, with yosys only. It runs on up to 8 cores;
 for the example it takes about 5 s on 8 cores, 8 s on 4, 14 s on 2 and 26 s on one, and it grows with the

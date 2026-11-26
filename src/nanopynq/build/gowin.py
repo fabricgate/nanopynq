@@ -48,6 +48,7 @@ def build_gowin(
     """Verilog -> .fs via YoWASP yosys / nextpnr-himbaechel-gowin / Apicula gowin_pack.
 
     design_id: sets the top module's DESIGN_ID parameter; a top without one makes yosys stop with an error.
+    Place and route checks timing at the board clock: a design too slow for it raises BuildError at pnr.
 
     All paths go to the tools as forward-slash strings (YoWASP's WASI runtime needs that on Windows).
     """
@@ -66,7 +67,8 @@ def build_gowin(
     pnr = ["yowasp-nextpnr-himbaechel-gowin", "--json", synth_json, "--write", pnr_json, "--device", board.device]
     if board.family:
         pnr += ["--vopt", f"family={board.family}"]
-    pnr += ["--vopt", "cst=" + tool_path(cst, abs_out, copied), "--seed", str(seed)]
+    freq = f"{board.clock_hz / 1e6:g}"  # without --freq, nextpnr checks timing at 12 MHz
+    pnr += ["--vopt", "cst=" + tool_path(cst, abs_out, copied), "--freq", freq, "--seed", str(seed)]
     pack = ["gowin_pack", "-d", board.pack_device, *board.pack_args, "-o", fs_name, pnr_json]
 
     for step, cmd in (("synth", ["yowasp-yosys", "-p", synth]), ("pnr", pnr), ("pack", pack)):

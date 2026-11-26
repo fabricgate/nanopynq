@@ -167,6 +167,7 @@ def test_build_writes_a_loadable_pair_and_a_record(design, tools_ok):
     rec = json.loads((dist / "build.json").read_text())
     assert [s["file"] for s in rec["sources"]][-2:] == ["top.v", "tangnano9k.cst"]
     assert rec["design_id"] == f"0x{npq.design_id:08x}" and str(design) not in json.dumps(rec)
+    assert rec["freq_mhz"] == 27.0
     assert json.loads((design / "build" / "ips.json").read_text()) == bd.load_config(design).ips
 
 
