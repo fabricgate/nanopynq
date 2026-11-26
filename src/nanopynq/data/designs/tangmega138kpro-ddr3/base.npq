@@ -1,13 +1,16 @@
 {
-  "format": "nanopynq-design/1",
+  "format": "nanopynq-design/2",
   "board": "tangmega138kpro",
   "bitstream": {
     "file": "base.fs",
-    "sha256": "f2d03e4e626d58792938f16a1c78827d6bd49cdf73307a2fe24951a64b931e9c"
+    "sha256": "f2d03e4e626d58792938f16a1c78827d6bd49cdf73307a2fe24951a64b931e9c",
+    "family": "gw5a"
   },
   "link": {
     "kind": "uart",
-    "baudrate": 115200
+    "baudrate": 115200,
+    "usb_vid": "0x0403",
+    "usb_pid": "0x6010"
   },
   "design_id": "0x48e5d25b",
   "ips": {

@@ -1,12 +1,15 @@
 {
-  "format": "nanopynq-design/1",
+  "format": "nanopynq-design/2",
   "board": "tangnano20k",
   "bitstream": {
     "file": "base.fs",
-    "sha256": "76e112f695343beec6d4836669877a4ebf55a66c349d8297cd98aa8a4ea469ec"
+    "sha256": "76e112f695343beec6d4836669877a4ebf55a66c349d8297cd98aa8a4ea469ec",
+    "family": "gw2a"
   },
   "link": {
-    "kind": "jtag"
+    "kind": "jtag",
+    "usb_vid": "0x0403",
+    "usb_pid": "0x6010"
   },
   "design_id": "0x1ef753ef",
   "ips": {
