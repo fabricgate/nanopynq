@@ -1,7 +1,7 @@
 // Loads Pyodide and nanopynq, for the page (mode B) and for the worker (mode A).
 import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v314.0.8/full/pyodide.mjs";
 
-export const WHEEL = "dist/nanopynq-0.1.1-py3-none-any.whl"; // serve.py builds it; the test checks the name
+export const WHEEL = "dist/nanopynq-0.2.0-py3-none-any.whl"; // serve.py builds it; the test checks the name
 
 // `prelude` sets up the namespace the cells run in, after `names` (JavaScript objects page.py uses) are put there.
 export async function loadNanopynq(print, prelude, names) {
