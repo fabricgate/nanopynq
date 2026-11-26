@@ -29,6 +29,8 @@ SYSINFO_ID = 0x4E505131
 SYS_VERSION, SYS_DESIGN_ID = 0x4, 0xC  # sys is at 0x0 (V10)
 ID_ATTEMPTS = 3
 ID_RETRY_DELAY = 0.5
+# Windows holds the break this long; POSIX pyserial rounds it down to the OS's own length (0.26 s measured on Linux)
+BREAK_SECONDS = 0.2
 _sleep = time.sleep  # tests patch this
 
 
@@ -138,6 +140,8 @@ class Overlay:
                 got = self._transport.read(addr)
             except TransportTimeout:
                 got = None
+                if attempt == 0:  # one is enough, and none before giving up
+                    self._wake_uart()
             except BridgeError as e:
                 got = e
             if got == SYSINFO_ID:
@@ -187,6 +191,13 @@ class Overlay:
             raise DesignMismatch(
                 f"the board runs another design: sys.design_id is {seen}, {where} has 0x{want:08x}. {fix}"
             )
+
+    def _wake_uart(self) -> None:
+        """A Tang Nano 9K's debugger leaves the first UART session after plugging in silent for as long as the port
+        stays open. A break wakes it (found by trial on the board; setting the baud rate, DTR or RTS does not)."""
+        send_break = getattr(self._link, "send_break", None)  # pyserial has it; the browser's port and fakes do not
+        if self._link_kind == "uart" and send_break is not None:
+            send_break(BREAK_SECONDS)
 
     def _not_responding(self, got: int | BridgeError | None) -> NoReturn:
         self.close()
