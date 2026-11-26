@@ -81,8 +81,9 @@ class Overlay:
                     f"{self.board.board_id} over {link['kind']!r}; rebuild the design for this board"
                 )
             if self.manifest.family is not None:  # nanopynq-design/2
-                # Spec 10.7: the family and the USB IDs are in the file for hosts without boards.yaml. Here
-                # boards.yaml stays in use, so a file that disagrees stops before anything is programmed.
+                # Spec chapter 10, row 12: the family and the USB IDs are in the file for hosts without
+                # boards.yaml. Here boards.yaml stays in use, so a file that disagrees stops before anything is
+                # programmed.
                 pairs = {
                     "bitstream.family": (self.manifest.family, self.board.programmer.get("family")),
                     "link.usb_vid": (int(self.manifest.link["usb_vid"], 16), link.get("usb_vid")),

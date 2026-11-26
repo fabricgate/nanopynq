@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -101,6 +102,14 @@ def test_jtag_board_refusal_lists_every_board_with_a_uart(design):
     edit(design, 'board = "tangnano9k"', 'board = "tangnano4k"')
     with pytest.raises(bd.ConfigError, match="the supported boards are tangmega138kpro, tangnano20k, tangnano9k"):
         bd.load_config(design)
+
+
+def test_a_board_without_usb_ids_stops_before_the_tools_run(design, tools_ok, monkeypatch):
+    nine = bd.get_board("tangnano9k")
+    bare = replace(nine, host_link={"kind": "uart", "baudrate": 115200})
+    monkeypatch.setattr(bd, "get_board", lambda b: bare)
+    with pytest.raises(bd.ConfigError, match=r"board: .*no usb_vid / usb_pid"):
+        bd.build_design(design, run=pytest.fail)
 
 
 def test_a_20k_design_is_built_for_its_uart(design, tools_ok):

@@ -136,10 +136,19 @@ def test_link_kind_other_than_the_boards_is_refused_before_programming(tmp_path)
     ],
 )
 def test_family_or_usb_ids_other_than_the_boards_are_refused_before_programming(tmp_path, change, where):
-    """Spec 10.7: boards.yaml stays in use here, so a file that disagrees with it is not programmed."""
+    """Spec chapter 10, row 12: boards.yaml stays in use here, so a file that disagrees with it is not programmed,
+    and not opened without programming either."""
     _npq(tmp_path, **change)
-    with pytest.raises(ManifestError, match=where):
-        Overlay(tmp_path, port="X", programmer=pytest.fail, open_port=pytest.fail, open_jtag=pytest.fail)
+    for download in (True, False):
+        with pytest.raises(ManifestError, match=where):
+            Overlay(
+                tmp_path,
+                download=download,
+                port="X",
+                programmer=pytest.fail,
+                open_port=pytest.fail,
+                open_jtag=pytest.fail,
+            )
 
 
 def test_a_jtag_design_reaches_the_bridge_with_the_boards_integer_usb_ids(tmp_path, monkeypatch):
