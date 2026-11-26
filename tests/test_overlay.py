@@ -88,9 +88,12 @@ def test_wrong_id_raises_board_not_responding_with_replug_hint(tmp_design, sleep
 
 def test_silent_port_does_not_hang(tmp_design):  # Review Focus 1
     dev = FakeUARTBoneDevice({0: 0x4E505131}, truncate_after=0)
+    dev.breaks = []
+    dev.send_break = dev.breaks.append
     with pytest.raises(BoardNotResponding, match="no response"):
         Overlay(tmp_design, programmer=lambda b, f: None, port="X", open_port=lambda p, b: dev)
     assert dev.frames == 3  # each of the 3 attempts sent one read frame
+    assert dev.breaks == [0.2]  # only after the first attempt
 
 
 def test_id_retry_succeeds_on_later_attempt(tmp_design):
@@ -100,6 +103,20 @@ def test_id_retry_succeeds_on_later_attempt(tmp_design):
             return b"" if self.reads == 1 else super().read(n)
 
     Overlay(tmp_design, download=False, port="X", open_port=lambda p, b: Flaky({0: 0x4E505131}))
+
+
+def test_a_break_wakes_a_uart_that_is_silent_after_plugging_in(tmp_design):
+    class SilentUntilBreak(FakeUARTBoneDevice):
+        def send_break(self, duration):
+            self.breaks.append(duration)
+
+        def read(self, n):
+            return super().read(n) if self.breaks else b""
+
+    dev = SilentUntilBreak({0: 0x4E505131})
+    dev.breaks = []
+    Overlay(tmp_design, download=False, port="X", open_port=lambda p, b: dev)
+    assert dev.breaks == [0.2] and dev.frames == 2  # one break after the first unanswered request, then it answers
 
 
 def test_base_without_board_lists_boards():
