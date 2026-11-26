@@ -129,6 +129,28 @@ def test_open_not_found_hints_zadig_or_udev():  # Review Focus 3
         Mpsse.open(0x0403, 0x6010, find=lambda **kw: [])
 
 
+def test_open_goes_on_when_something_else_detached_the_driver_first():
+    """The udev rule unbinds ftdi_sio from Interface 0 right after it binds; Mpsse.open may see it bound, then find
+    it gone when it detaches (after openFPGALoader, which re-attaches the driver when it closes)."""
+
+    class Raced(FakeUsb):
+        def is_kernel_driver_active(self, iface):
+            return self.active.pop(0)
+
+        def detach_kernel_driver(self, iface):
+            raise usb.core.USBError("Entity not found", errno=2)  # what libusb said on the board
+
+    dev = Raced("A1")
+    dev.active = [True, False]  # bound when asked first; gone by the time the failed detach is checked
+    Mpsse.open(0x0403, 0x6010, find=lambda **kw: [dev]).close()
+    assert dev.released and dev.active == []
+
+    still = Raced("A1")
+    still.active = [True, True]  # really still bound: the failure stands
+    with pytest.raises(PortOpenError):
+        Mpsse.open(0x0403, 0x6010, find=lambda **kw: [still])
+
+
 def test_open_two_boards_lists_serials():  # Review Focus 3
     with pytest.raises(PortNotFound, match=r"A1.*B2"):
         Mpsse.open(0x0403, 0x6010, find=lambda **kw: [FakeUsb("A1"), FakeUsb("B2")])
