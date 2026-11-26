@@ -48,6 +48,8 @@ def test_build_commands_for_9k(tmp_path):
         "family=GW1N-9C",
         "--vopt",
         "cst=" + Path("t.cst").resolve().as_posix(),
+        "--freq",
+        "27",
         "--seed",
         "1",
     ]

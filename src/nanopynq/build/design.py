@@ -281,6 +281,7 @@ def build_design(
             "nanopynq": _version("nanopynq"),
             "top": d.top,
             "seed": d.seed,
+            "freq_mhz": board.clock_hz / 1e6,  # the clock timing was checked at (nextpnr --freq)
             "sources": [{"file": s, "sha256": _sha256(p)} for s, p in [*d.sources, d.constraints]],
             "tools": {t: _version(t) for t in TOOLS},
             "python": platform.python_version(),
