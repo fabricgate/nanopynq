@@ -44,3 +44,23 @@ def uart_link(board: BoardInfo) -> dict[str, Any] | None:
     if board.uart_link is not None:
         return {"kind": "uart", "baudrate": board.uart_link["baudrate"]}
     return None
+
+
+def npq_family(board: BoardInfo) -> str:
+    """bitstream.family of a .npq built for the board (spec 5.2)."""
+    return str(board.programmer["family"])
+
+
+def npq_link(board: BoardInfo, kind: str) -> dict[str, Any]:
+    """The link of a .npq built for the board (spec 5.2): `kind` with the board's UART baud rate when it is "uart",
+    and the USB IDs of its debugger as the file writes them. ValueError when the board lacks what the file needs."""
+    link: dict[str, Any] = {"kind": kind}
+    if kind == "uart":
+        uart = uart_link(board)
+        if uart is None:
+            raise ValueError(f"{board.board_id}: boards.yaml gives no UART link")
+        link["baudrate"] = uart["baudrate"]
+    host = board.host_link
+    if "usb_vid" not in host or "usb_pid" not in host:
+        raise ValueError(f"{board.board_id}: boards.yaml host_link has no usb_vid / usb_pid, which a .npq needs")
+    return {**link, "usb_vid": f"0x{host['usb_vid']:04x}", "usb_pid": f"0x{host['usb_pid']:04x}"}

@@ -85,12 +85,14 @@ PYNQ は、載っているデザインを回路から読んで確かめていな
 
 | 項目 | 必須 | 書き方 |
 | --- | --- | --- |
-| `format` | ○ | 文字列 `"nanopynq-design/1"` と完全に同じ。違えば、ほかの項目を見ずにエラーにする |
+| `format` | ○ | 文字列 `"nanopynq-design/2"` か `"nanopynq-design/1"` と完全に同じ。違えば、ほかの項目を見ずにエラーにする。書く道具は `/2` を書く(版の違いは 5.2.1) |
 | `board` | ○ | `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` |
 | `bitstream.file` | ○ | `.fs` のファイル名。`^[A-Za-z0-9_][A-Za-z0-9._-]*$` で、255 文字まで(フォルダの区切りは使えない。メタ情報ファイルと同じフォルダにあるファイルだけを指せる) |
 | `bitstream.sha256` | ○ | `^[0-9a-f]{64}$` |
+| `bitstream.family` | `/2` で ○ | FPGA のファミリ。`^[a-z0-9]+$`(いまのボードは `gw1n`、`gw2a`、`gw5a`)。書き込みの手順がこれで変わる。`/1` では書けない |
 | `link.kind` | ○ | `"uart"` か `"jtag"` |
 | `link.baudrate` | `uart` のとき ○ | 1 から 2^53 - 1 までの整数。`jtag` のときは書けない |
+| `link.usb_vid`、`link.usb_pid` | `/2` で ○ | ボードのデバッガの USB の VID と PID。`^0x[0-9a-f]{4}$`(例: `"0x0403"`、`"0x6010"`)。`link.kind` が `uart` でも `jtag` でも書く(書き込みは、同じ USB の機器の JTAG を使う)。`/1` では書けない |
 | `design_id` | ○ | `^0x[0-9a-f]{8}$`。`0x00000000` と `0xdeadbeef` は使えない(5.4) |
 | `ips` | ○ | IP の定義(5.3)。1 個以上の項目を持つオブジェクト(V3)。`sys` を必ず含む(`sys` が無いときに当たる決まりは V10) |
 | `name` | — | デザインの名前。文字列。識別値には含めない(10 章の 6) |
@@ -101,8 +103,20 @@ PYNQ は、載っているデザインを回路から読んで確かめていな
 - `bitstream` と `link` の中に、上に無い項目は書けない。
 - いちばん上の階層に、上に無い項目があっても、読む側は無視する(形式の版を上げずに、説明用の項目を足せるようにするため)。識別値には関わらない。
 - いちばん上の `name`、`doc`、知らない項目の中の文字列は、中身を検査しない(制御文字や、エスケープで書いた対になっていないサロゲートがあっても通す)。5.3 の文字列の決まりは、`ips` の中だけに当てはまる。ただし、読む前の本文に当てはめる決まり(V1)は、ここにも当てはまる。
-- USB の VID / PID のようにボードで決まる情報は、ここには入れない(`boards.yaml` のまま)。
-- `link` と `boards.yaml` の `host_link` が食い違ったときの扱いは、10 章の 7。
+- **ホストがボードにつなぐ、書き込むのに要る情報は、ここに入れる**(`link`、`bitstream.family`)。ビルドにだけ要る情報(デバイスの型番、合成と配置配線の引数、I/O の電圧、クロックの周波数)は、入れない(`boards.yaml` のまま)。ボードの表を持たない読み手(ブラウザのページなど)が、メタ情報ファイルと `.fs` だけで動けるようにするため(10 章の 10)。
+- ファミリの書き方は開いている(知らない値でも、読む側はエラーにしない)。レジスタの読み書きは、ファミリによらないため。**書き込む側は、手順を知らないファミリを、何も消す前に断る。**
+- `link`、`bitstream.family` と `boards.yaml` が食い違ったときの扱いは、10 章の 7 と 12。
+
+#### 5.2.1 形式の版
+
+| 版 | 違い |
+| --- | --- |
+| `nanopynq-design/1` | `bitstream.family`、`link.usb_vid`、`link.usb_pid` が無い(書くと V3)。ボードの表を持たない読み手は、このファイルの `.fs` をファミリに合わせて書き込めない |
+| `nanopynq-design/2` | 上の 3 つが必須。ほかは `/1` と同じ |
+
+- 読む側は、両方の版を読む。`/1` のファイルでは、足りない値を補わない(Python は `boards.yaml` の値を使う。ブラウザは、ファミリによる確認をせずに書き込む、または書き込まない)。
+- `/1` だけを読む古い読み手は、`/2` のファイルを V2 で断る。
+- 3 つの項目は回路に入らないので、識別値(5.4)には含めない。同じ `ips` なら、版が違っても `design_id` は同じ。
 
 ### 5.3 `ips`
 
@@ -223,7 +237,7 @@ IP をまたぐ決まり:
 2. `ips` から `design_id` を計算する。
 3. `design_id` を回路に入れて、`.fs` を作る。
 4. `.fs` の sha256 を計算する。
-5. `format`、`board`、`bitstream`、`link`、`design_id`、`ips` をメタ情報ファイルに書く。
+5. `format`、`board`、`bitstream`、`link`、`design_id`、`ips` をメタ情報ファイルに書く。`bitstream.family` と `link` の値は、`boards.yaml` から書き写す(`programmer.family`、`host_link` の `usb_vid` と `usb_pid`、UART の baudrate)。
 
 `design_id` は `bitstream.sha256` にも自分自身にも依存しない。
 
@@ -269,8 +283,8 @@ sysinfo 1.0 の回路は、`0xc` を読むと `0xdeadbeef` を返す(実機で�
 | 番号 | 決まり | 章 |
 | --- | --- | --- |
 | V1 | ファイルは 1 MiB(1048576 バイト)以下で、UTF-8(BOM 無し)の JSON として読め(`NaN` と `Infinity` は JSON ではない)、いちばん上はオブジェクト。読む前の本文で、数はどこでも 16 桁までの整数の書き方、同じオブジェクトの中に同じ名前の項目が無い、入れ子の深さは 64 まで | 5.1、5.3 |
-| V2 | `format` が `"nanopynq-design/1"` と完全に同じ(`format` が無いときも、この決まり) | 5.2 |
-| V3 | いちばん上の必須の項目がそろい、それぞれの書き方に合う。`bitstream` と `link` に余計な項目が無い。`name` と `doc` は、あれば文字列。`ips` は、1 個以上の項目を持つオブジェクト | 5.2 |
+| V2 | `format` が `"nanopynq-design/1"` か `"nanopynq-design/2"` と完全に同じ(`format` が無いときも、この決まり) | 5.2 |
+| V3 | いちばん上の必須の項目がそろい、それぞれの書き方に合う。`bitstream` と `link` に余計な項目が無い(項目の集合は `format` の版で決まる。5.2.1)。`name` と `doc` は、あれば文字列。`ips` は、1 個以上の項目を持つオブジェクト | 5.2 |
 | V4 | `ips` の中の値(場所を問わない)に、`null`、範囲の外の整数、壊れた文字列、制御文字が無い。項目の名前は、ここでは見ない(V5、V6) | 5.3 |
 | V5 | 名前がすべて `^[a-z][a-z0-9_]*$` に合い、`doc` を名前に使っていない | 5.3 |
 | V6 | IP、`parameters`、`registers`、`streams`、レジスタが、それぞれオブジェクト。IP とレジスタの階層に、表に無い項目が無い。必須の項目がそろっている | 5.3 |
@@ -287,7 +301,10 @@ V4 と V8 の境目: V4 は値の種類を見る(どの項目かは問わない)
 
 | 入力 | 当たる決まり |
 | --- | --- |
-| `"format": "nanopynq-design/2"` | V2 |
+| `"format": "nanopynq-design/3"` | V2 |
+| `"format": "nanopynq-design/2"` で、`bitstream.family` や `link.usb_vid` が無い | V3 |
+| `"format": "nanopynq-design/1"` で、`bitstream.family` や `link.usb_vid` がある | V3 |
+| `"usb_vid": 1027`、`"usb_vid": "0x04B4"`、`"usb_vid": "0x403"`、`"family": "GW1N"` | V3 |
 | `"bitstream": {"file": "../base.fs", ...}` | V3 |
 | `"sha256"` や `"design_id"` に大文字がある | V3 |
 | `"link": {"kind": "jtag", "baudrate": 115200}` | V3 |
@@ -315,10 +332,10 @@ V4 と V8 の境目: V4 は値の種類を見る(どの項目かは問わない)
 
 ```json
 {
-  "format": "nanopynq-design/1",
+  "format": "nanopynq-design/2",
   "board": "tangnano9k",
-  "bitstream": {"file": "base.fs", "sha256": "<sha256 of the new build>"},
-  "link": {"kind": "uart", "baudrate": 115200},
+  "bitstream": {"file": "base.fs", "sha256": "<sha256 of the new build>", "family": "gw1n"},
+  "link": {"kind": "uart", "baudrate": 115200, "usb_vid": "0x0403", "usb_pid": "0x6010"},
   "design_id": "0xabf78d8c",
   "ips": {
     "sys": {
@@ -355,10 +372,10 @@ V4 と V8 の境目: V4 は値の種類を見る(どの項目かは問わない)
 
 ```json
 {
-  "format": "nanopynq-design/1",
+  "format": "nanopynq-design/2",
   "board": "tangnano4k",
-  "bitstream": {"file": "base.fs", "sha256": "<sha256 of the new build>"},
-  "link": {"kind": "jtag"},
+  "bitstream": {"file": "base.fs", "sha256": "<sha256 of the new build>", "family": "gw1n"},
+  "link": {"kind": "jtag", "usb_vid": "0x0403", "usb_pid": "0x6010"},
   "design_id": "0xca950154",
   "ips": {
     "sys": {
@@ -472,7 +489,7 @@ V4 と V8 の境目: V4 は値の種類を見る(どの項目かは問わない)
 
 ## 10. 決まったこと(オーナーの判断)
 
-1〜5 は 2026-11-18、6〜8 は 2026-11-20 に決めた(7 のうち `link.kind` は 2026-11-19)。6〜8 は、実験 A3 と #32 で出た問いで、それまで既定として進めていた内容をそのまま確定した。
+1〜5 は 2026-11-18、6〜8 は 2026-11-20 に決めた(7 のうち `link.kind` は 2026-11-19)。6〜8 は、実験 A3 と #32 で出た問いで、それまで既定として進めていた内容をそのまま確定した。10〜13 は 2026-11-26 に決めた(公開後のリポジトリの issue 24。この文書のほかの issue 番号は、公開前のもの)。
 
 | # | 項目 | 決定 |
 | --- | --- | --- |
@@ -484,6 +501,11 @@ V4 と V8 の境目: V4 は値の種類を見る(どの項目かは問わない)
 | 6 | デザインの名前の項目 `name` を足すか(`design_ref` が無くなるので、同梱の 5 件はどれも `base.npq` になり、ファイルだけでは base と camera を見分けられない) | 任意の項目として足す。識別値には含めない |
 | 7 | `link` と `boards.yaml` の `host_link` が食い違ったとき、どちらを使うか | `link.baudrate` は、メタ情報ファイルの値を使う。`boards.yaml` は USB の VID / PID に使う。**`link.kind`(`uart` か `jtag`)が違うときは、書き込みの前にエラーにする**(通信の種類を差し替えた経路は、どのボードでも試されていない。差し替えが要る例が出たら見直す) |
 | 8 | `.npq` と `.fs` の名前(拡張子を除く)が同じであることを、読む側が強制するか | 強制しない(`bitstream.file` に従う) |
+
+| 10 | ボードで決まる情報を、メタ情報ファイルに入れるか | ホストがつなぐ、書き込むのに要る情報は入れる。ビルドにだけ要る情報は `boards.yaml` のまま(5.2)。PYNQ の `.hwh` も、デバイスや PS の設定(クロック、UART の baudrate など)を持っている |
+| 11 | 足す項目と、形式の版 | `bitstream.family`、`link.usb_vid`、`link.usb_pid` を足し、形式の版を `nanopynq-design/2` に上げる。`/2` の読み手は `/1` も読む。足した項目は識別値に含めない |
+| 12 | 足した項目と `boards.yaml` が食い違ったとき | 7 の延長。Python は `boards.yaml` の値を使い続ける。**メタ情報ファイルの `bitstream.family`、`link.usb_vid`、`link.usb_pid` が `boards.yaml` と違うときは、書き込みの前にエラーにする**(取得したファイルの誤ったファミリで、書き込みの前の確認が外れないようにする)。ボードの表を持たない読み手は、ファイルの値を使う |
+| 13 | `/1` のファイルで足りない値 | 補わない(5.2.1) |
 
 先送りにしたこと:
 

@@ -15,7 +15,9 @@ from typing import Any, NoReturn
 from nanopynq.errors import ManifestError, NpqError
 from nanopynq.manifest import DEFAULT_ADDR_RANGE, Manifest, load_manifest
 
-FORMAT = "nanopynq-design/1"
+FORMAT = "nanopynq-design/2"  # what write_npq writes
+# /1 has no bitstream.family, link.usb_vid or link.usb_pid: a host without a board table cannot load its .fs
+FORMATS = ("nanopynq-design/1", FORMAT)
 MAX_BYTES = 1 << 20
 MAX_DEPTH = 64  # objects and lists; the top object is 1
 MAX_SAFE = 2**53 - 1
@@ -27,6 +29,8 @@ INT_LITERAL = re.compile(r"-?(0|[1-9][0-9]{0,15})")
 BOARD = re.compile(r"[a-z0-9]([a-z0-9-]*[a-z0-9])?")
 FILE = re.compile(r"[A-Za-z0-9_][A-Za-z0-9._-]*")
 SHA256 = re.compile(r"[0-9a-f]{64}")
+FAMILY = re.compile(r"[a-z0-9]+")  # open: a loader refuses a family it does not know
+USB_ID = re.compile(r"0x[0-9a-f]{4}")
 DESIGN_ID = re.compile(r"0x[0-9a-f]{8}")
 NAME = re.compile(r"[a-z][a-z0-9_]*")
 HEX = re.compile(r"0x[0-9a-f]+")
@@ -42,10 +46,12 @@ SECTIONS = ("parameters", "registers", "streams")
 
 @dataclass(frozen=True)
 class Npq(Manifest):
-    """A checked .npq: the Manifest fields (ips in the same DefaultIP description shape) plus the link and design_id."""
+    """A checked .npq: the Manifest fields (ips in the same DefaultIP description shape) plus the link, the design_id
+    and the FPGA family (None in a nanopynq-design/1 file, whose link has no usb_vid / usb_pid either)."""
 
     link: dict[str, Any]
     design_id: int
+    family: str | None = None
 
 
 def _fail(rule: str, where: str, detail: str) -> NoReturn:
@@ -133,8 +139,8 @@ def _parse(data: bytes) -> dict[str, Any]:
 
 
 def _v2(doc: dict[str, Any]) -> None:
-    if type(doc.get("format")) is not str or doc["format"] != FORMAT:
-        _fail("V2", "format", f"must be {FORMAT!r}, got {doc.get('format')!r}")
+    if type(doc.get("format")) is not str or doc["format"] not in FORMATS:
+        _fail("V2", "format", f"must be one of {FORMATS!r}, got {doc.get('format')!r}")
 
 
 def _v3(doc: dict[str, Any]) -> None:
@@ -143,14 +149,20 @@ def _v3(doc: dict[str, Any]) -> None:
             _fail("V3", k, "missing")
     if not _matches(BOARD, doc["board"]):
         _fail("V3", "board", f"bad board name {doc['board']!r}")
-    for k, fields in (("bitstream", ("file", "sha256")), ("link", ("kind", "baudrate"))):
+    v2 = doc["format"] == FORMAT  # V2 passed: the format is /1 or /2
+    more = (("family", FAMILY),), (("usb_vid", USB_ID), ("usb_pid", USB_ID))
+    bit_fields, usb_fields = more if v2 else ((), ())
+    for k, fields in (
+        ("bitstream", ("file", "sha256", *(f for f, _ in bit_fields))),
+        ("link", ("kind", "baudrate", *(f for f, _ in usb_fields))),
+    ):
         if type(doc[k]) is not dict:
             _fail("V3", k, "must be an object")
         for f in doc[k]:
             if f not in fields:
                 _fail("V3", f"{k}.{f}", "unknown field")
     bit = doc["bitstream"]
-    for f, pattern in (("file", FILE), ("sha256", SHA256)):
+    for f, pattern in (("file", FILE), ("sha256", SHA256), *bit_fields):
         if f not in bit:
             _fail("V3", f"bitstream.{f}", "missing")
         if not _matches(pattern, bit[f]):
@@ -168,6 +180,11 @@ def _v3(doc: dict[str, Any]) -> None:
             _fail("V3", "link.baudrate", f"uart needs an integer 1 .. 2^53 - 1, got {b!r}")
     elif "baudrate" in link:
         _fail("V3", "link.baudrate", "not allowed with jtag")
+    for f, pattern in usb_fields:
+        if f not in link:
+            _fail("V3", f"link.{f}", "missing")
+        if not _matches(pattern, link[f]):
+            _fail("V3", f"link.{f}", f"must be 0x and 4 lowercase hex digits, got {link[f]!r}")
     if not _matches(DESIGN_ID, doc["design_id"]):
         _fail("V3", "design_id", f"must be 0x and 8 lowercase hex digits, got {doc['design_id']!r}")
     if doc["design_id"] in RESERVED_IDS:
@@ -478,6 +495,7 @@ def load_npq(path: Path, check_bitstream: bool = True) -> Npq:
         ips={n: _description(n, ip) for n, ip in doc["ips"].items()},
         link=dict(doc["link"]),
         design_id=int(doc["design_id"], 16),
+        family=doc["bitstream"].get("family"),
     )
 
 
@@ -491,8 +509,9 @@ def load_design(path: Path, check_bitstream: bool = True) -> Manifest:
     return load_manifest(path)
 
 
-def write_npq(bitstream: Path, board: str, link: dict[str, Any], ips: dict[str, Any]) -> Path:
-    """Spec 5.6 step 5: write `<stem>.npq` next to the built .fs and return its path.
+def write_npq(bitstream: Path, board: str, family: str, link: dict[str, Any], ips: dict[str, Any]) -> Path:
+    """Spec 5.6 step 5: write `<stem>.npq` next to the built .fs and return its path. `family` and `link` are the
+    board's, as nanopynq.boards.npq_family and npq_link give them.
 
     The output is JSON with a 2-space indent, LF and a final newline, UTF-8 without escapes; the top-level keys are in
     the order of spec 5.6, and `ips` keeps the caller's order, so the same arguments always give the same bytes. The
@@ -504,7 +523,11 @@ def write_npq(bitstream: Path, board: str, link: dict[str, Any], ips: dict[str, 
     doc = {
         "format": FORMAT,
         "board": board,
-        "bitstream": {"file": bitstream.name, "sha256": hashlib.sha256(bitstream.read_bytes()).hexdigest()},
+        "bitstream": {
+            "file": bitstream.name,
+            "sha256": hashlib.sha256(bitstream.read_bytes()).hexdigest(),
+            "family": family,
+        },
         "link": link,
         "design_id": f"0x{design_id(ips):08x}",
         "ips": ips,

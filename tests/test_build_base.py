@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from nanopynq.boards import get_board
+from nanopynq.boards import get_board, npq_family, npq_link
 from nanopynq.npq import design_id, load_npq, write_npq
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -33,8 +33,9 @@ def test_bundled_ips_give_the_spec_design_ids(board, design, want):  # spec 5.4 
 def test_every_designs_ips_can_be_written_to_a_npq(tmp_path, board, design):  # list parameters (pllcheck, pwm)
     fs = tmp_path / "base.fs"
     fs.write_bytes(b"dummy bitstream")
-    link = {"kind": "uart", "baudrate": 115200} if get_board(board).host_link["kind"] == "uart" else {"kind": "jtag"}
-    assert load_npq(write_npq(fs, board, link, bb.ips(board, design))).design_id == design_id(bb.ips(board, design))
+    b = get_board(board)
+    npq = write_npq(fs, board, npq_family(b), npq_link(b, b.host_link["kind"]), bb.ips(board, design))
+    assert load_npq(npq).design_id == design_id(bb.ips(board, design))
 
 
 @pytest.mark.parametrize("board, design", ALL)

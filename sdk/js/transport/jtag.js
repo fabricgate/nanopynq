@@ -195,6 +195,10 @@ class JtagBridge {
 const GW = { NOOP: 0x02, ERASE_SRAM: 0x05, XFER_DONE: 0x09, INIT_ADDR: 0x12, CONFIG_ENABLE: 0x15, XFER_WRITE: 0x17,
              CONFIG_DISABLE: 0x3a, STATUS: 0x41 };
 const ST = { CRC_ERROR: 1 << 0, MEMORY_ERASE: 1 << 5, SYSTEM_EDIT_MODE: 1 << 7, DONE_FINAL: 1 << 13 };
+// A healthy GW1N reports POR, READY and VLD (9K 0x0003f020, 4K 0x0001f020); the GW2A never does (20K 0x00006020).
+const GW1N_OK = (1 << 16) | (1 << 15) | (1 << 12);
+// An error a page tells apart by its name, not its text.
+const named = (name, message) => Object.assign(new Error(message), { name });
 const REV = Uint8Array.from({ length: 256 }, (_, i) => parseInt(i.toString(2).padStart(8, "0").split("").reverse().join(""), 2));
 
 // The .fs text -> its bytes (non-comment lines of '0'/'1' up to the first empty line, 8 characters per byte,
@@ -265,13 +269,26 @@ class GowinSram {
   }
 
   // Erase the SRAM and load the .fs text. Returns the final status; throws unless DONE_FINAL.
-  async load(fsText, onProgress) {
+  // family: bitstream.family of the design's .npq, for the checks load_sram (src/nanopynq/gowin.py) makes by family.
+  // Left out (a nanopynq-design/1 file has none), those checks are as before families were known here. Nothing is
+  // erased when it throws GowinUnsupportedFamily (this loader has the gw1n and gw2a sequences only) or GowinNotReady
+  // (power-cycle the board); both are the error's name.
+  async load(fsText, onProgress, family) {
+    if (family != null && family !== "gw1n" && family !== "gw2a") {
+      throw named("GowinUnsupportedFamily", `this loader loads gw1n and gw2a designs, not ${family}`);
+    }
     const { data, idcode } = parseFs(fsText);
     const board = await readIdcode(this.m);
+    const s = await this.status();
+    // Before the IDCODE: a GW1N with POR, READY or VLD clear reports the IDCODE of its sibling (a 9K read
+    // 0x00021020 after a failed load until it was power-cycled).
+    if (family === "gw1n" && (s & GW1N_OK) !== GW1N_OK) {
+      throw named("GowinNotReady", `the FPGA is not ready to be configured: status 0x${s.toString(16)} (POR, READY and VLD must be set). Unplug the board to power-cycle it, then load again.`);
+    }
     if (idcode !== null && ((idcode & 0x0fffffff) >>> 0) !== ((board & 0x0fffffff) >>> 0)) {
       throw new Error(`the .fs is for IDCODE 0x${idcode.toString(16)}, the board is 0x${board.toString(16)}`);
     }
-    if ((await this.status()) & ST.CRC_ERROR) {
+    if (family !== "gw1n" && (s & ST.CRC_ERROR)) { // load_sram refuses this on a GW2A only
       throw new Error("the FPGA reports a CRC error from an earlier load; openFPGALoader clears it first (not done here)");
     }
     await this.cmd(GW.CONFIG_ENABLE); // erase
@@ -290,9 +307,9 @@ class GowinSram {
     await this._dr(data, onProgress);
     await this.cmd(GW.CONFIG_DISABLE);
     await this.cmd(GW.NOOP);
-    const s = await this.status();
-    if (!(s & ST.DONE_FINAL)) throw new Error(`load failed: status 0x${s.toString(16)} (no DONE_FINAL)`);
-    return s;
+    const done = await this.status();
+    if (!(done & ST.DONE_FINAL)) throw new Error(`load failed: status 0x${done.toString(16)} (no DONE_FINAL)`);
+    return done;
   }
 }
 

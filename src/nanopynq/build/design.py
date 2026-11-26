@@ -15,7 +15,8 @@ nanopynq.toml (unknown keys are errors, so a misspelt optional key cannot silent
     inputs = { btn = 0 }          # top inputs held at a value during the check
     depth = 32                    # clocks from configuration the check unrolls
 
-The link (uart, baudrate) comes from the board: boards.yaml host_link, or uart_link where host_link is JTAG.
+The link (uart, baudrate, the debugger's USB IDs) and the FPGA family come from the board: boards.yaml host_link
+(uart_link where host_link is JTAG) and programmer.family.
 Intermediate files go to build/, the ips the build used to build/ips.json.
 """
 
@@ -34,7 +35,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any, cast
 
-from nanopynq.boards import BoardInfo, get_board, list_boards, uart_link
+from nanopynq.boards import BoardInfo, get_board, list_boards, npq_family, npq_link, uart_link
 from nanopynq.build.collect import CollectError as CollectError  # re-exported: __main__ catches it from here
 from nanopynq.build.collect import collect, elaborate, load_descriptions, merge
 from nanopynq.build.crosscheck import Result, _family, crosscheck
@@ -235,6 +236,10 @@ def build_design(
     if not ok:
         raise ToolsMissing(msg)
     board = get_board(d.board)
+    try:  # before the tools run: what the .npq takes from boards.yaml
+        family, link = npq_family(board), npq_link(board, "uart")
+    except (KeyError, ValueError) as e:
+        raise ConfigError(f"board: {e}") from None
     work, dist = d.folder / "build", d.folder / "dist"
     stale = [p.name for p in dist.glob("*.npq") if p.name != f"{d.name}.npq"]
     if stale:  # Overlay(dist) needs exactly one .npq
@@ -269,11 +274,9 @@ def build_design(
     )
     dist.mkdir(exist_ok=True)
     out = dist / f"{d.name}.fs"
-    link = uart_link(board)
-    assert link is not None  # load_config refused a board without a UART link
     try:
         shutil.copyfile(fs, out)
-        write_npq(out, d.board, link, ips)
+        write_npq(out, d.board, family, link, ips)
         record = {
             "design": d.name,
             "board": d.board,

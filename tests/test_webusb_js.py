@@ -127,3 +127,69 @@ def test_js_sends_the_whole_bitstream_inside_shift_dr():
     assert out["dr"] and all(r["same"] and r["state"] == "RTI" and r["stray"] == 0 for r in out["dr"]), out["dr"]
     # a failed flush leaves its answer behind: the next flush purges the receive buffer first (as mpsse.py)
     assert out["stale"] == {"failed": True, "purges": 1, "value": 0}
+
+
+# GowinSram.load by family (bitstream.family of the .npq), as load_sram in src/nanopynq/gowin.py. The fake debugger
+# answers 0 to every read, so the board's IDCODE is 0; status() is replaced by the value under test.
+_FAMILY = """
+const j = require(process.argv[1]);
+const cases = JSON.parse(process.argv[2]);
+const usb = {
+  async controlTransferOut() {},
+  async transferOut(ep, b) { return { status: "ok", bytesWritten: b.length }; },
+  async transferIn() { return { status: "ok", data: new DataView(Uint8Array.from([1, 0x60, 0, 0, 0, 0, 0, 0, 0, 0]).buffer) }; },
+};
+const bits = (n, w) => n.toString(2).padStart(w, "0");
+(async () => {
+  const out = [];
+  for (const c of cases) {
+    const sram = new j.GowinSram(new j.Mpsse(usb, 512));
+    const cmds = [];
+    sram.status = async () => c.status;
+    sram.cmd = async (x) => { cmds.push(x); };
+    sram.poll = async () => { throw new Error("erase started"); };
+    const fs = (c.idcode === undefined ? "" : bits(0x06, 8) + bits(0, 24) + bits(c.idcode, 32) + "\\n") + bits(0xa5, 8) + "\\n";
+    try { await sram.load(fs, undefined, c.family); out.push({ name: "none" }); }
+    catch (e) { out.push({ name: e.name, message: e.message, cmds }); }
+  }
+  console.log(JSON.stringify(out));
+})();
+"""
+READY_9K, NOT_READY_9K, READY_20K, CRC = 0x0003F020, 0x00021020, 0x00006020, 1 << 0
+ERASING = {"name": "Error", "message": "erase started", "cmds": [0x15]}  # CONFIG_ENABLE: the checks let it through
+
+
+def _load(**case):
+    (out,) = json.loads(node(_FAMILY, str(JS), json.dumps([case])))
+    return out
+
+
+def test_js_refuses_a_gw1n_that_is_not_ready_before_erasing():
+    out = _load(family="gw1n", status=NOT_READY_9K)
+    assert out["name"] == "GowinNotReady" and out["cmds"] == [] and "0x21020" in out["message"]
+    assert _load(family="gw1n", status=READY_9K) == ERASING
+
+
+def test_js_names_the_not_ready_gw1n_before_its_wrong_idcode():
+    # a GW1N in that state reports its sibling's IDCODE: the power cycle is the fix, not another board
+    assert _load(family="gw1n", status=NOT_READY_9K, idcode=0x0100481B)["name"] == "GowinNotReady"
+    out = _load(family="gw1n", status=READY_9K, idcode=0x0100481B)
+    assert out["name"] == "Error" and "IDCODE 0x100481b" in out["message"] and out["cmds"] == []
+
+
+def test_js_checks_the_crc_error_on_a_gw2a_only():
+    assert "CRC error" in _load(family="gw2a", status=READY_20K | CRC)["message"]
+    assert _load(family="gw2a", status=READY_20K) == ERASING  # no POR / READY / VLD on a GW2A: not a GW1N's check
+    assert _load(family="gw1n", status=READY_9K | CRC) == ERASING
+
+
+def test_js_refuses_a_family_it_has_no_sequence_for():
+    for family in ("gw5a", "gw9z", ""):
+        out = _load(family=family, status=READY_20K)
+        assert out["name"] == "GowinUnsupportedFamily" and out["cmds"] == [], family
+
+
+def test_js_without_a_family_loads_as_before():
+    """A nanopynq-design/1 file has no family: no readiness check, the CRC check for any device."""
+    assert _load(status=NOT_READY_9K) == ERASING
+    assert "CRC error" in _load(status=READY_9K | CRC)["message"]

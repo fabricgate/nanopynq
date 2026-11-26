@@ -48,7 +48,7 @@ from pathlib import Path
 
 import yaml
 
-from nanopynq.boards import BoardInfo, get_board
+from nanopynq.boards import BoardInfo, get_board, npq_family, npq_link
 from nanopynq.build.gowin import build_gowin, chparam_design_id
 from nanopynq.errors import BuildError
 from nanopynq.npq import design_id, write_npq
@@ -608,8 +608,7 @@ def main() -> None:
         shutil.copyfile(fs, dest / "base.fs")
     sha = _sha256(dest / "base.fs")
     (dest / "manifest.yaml").unlink(missing_ok=True)  # the .npq wins over it; a stale one only misleads
-    link = {"kind": "jtag"} if jtag else {"kind": "uart", "baudrate": board.host_link["baudrate"]}
-    write_npq(dest / "base.fs", board_id, link, the_ips)
+    write_npq(dest / "base.fs", board_id, npq_family(board), npq_link(board, "jtag" if jtag else "uart"), the_ips)
     record = build_record(board_id, args.design, args.seed, srcs, cst, sha, record_tools)
     (dest / "build.json").write_bytes((json.dumps(record, indent=2) + "\n").encode("utf-8"))
     print(f"{dest}\n  base.fs sha256 {sha}\n  design_id 0x{did:08x}")

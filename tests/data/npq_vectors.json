@@ -353,10 +353,10 @@
   {
    "name": "format_2",
    "source": "a4",
-   "what": "5.9 example: format nanopynq-design/2",
+   "what": "5.2: nanopynq-design/2 without bitstream.family, link.usb_vid and link.usb_pid",
    "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
    "expect": {
-    "rule": "V2"
+    "rule": "V3"
    }
   },
   {
@@ -2621,6 +2621,294 @@
    "text": "{\"format\": \"nanopynq-design/1\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200}, \"design_id\": \"0x2d3c87ba\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.0\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\", \"read_effect\": true}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
    "expect": {
     "design_id": "0x2d3c87ba"
+   }
+  },
+  {
+   "name": "format_3",
+   "source": "v2",
+   "what": "5.9 example: format nanopynq-design/3",
+   "text": "{\"format\": \"nanopynq-design/3\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V2"
+   }
+  },
+  {
+   "name": "v2_tangnano9k_base",
+   "source": "v2",
+   "what": "5.2: nanopynq-design/2, uart link; the new items are not in the design_id",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "design_id": "0xabf78d8c"
+   }
+  },
+  {
+   "name": "v2_tangnano20k_base",
+   "source": "v2",
+   "what": "5.2: nanopynq-design/2, jtag link with the USB IDs and no baudrate",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano20k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"71805340e8ffb0990c42dcbc49f5807bd0d527d312951a199b838ba5a2a4f524\", \"family\": \"gw2a\"}, \"link\": {\"kind\": \"jtag\", \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "design_id": "0xabf78d8c"
+   }
+  },
+  {
+   "name": "v2_family_unknown_to_loaders",
+   "source": "v2",
+   "what": "5.2 bitstream.family: any ^[a-z0-9]+$ is read; loading is the loader's check",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw9z\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "design_id": "0xabf78d8c"
+   }
+  },
+  {
+   "name": "v2_family_missing",
+   "source": "v2",
+   "what": "5.2: bitstream.family is required in /2",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_missing",
+   "source": "v2",
+   "what": "5.2: link.usb_vid is required in /2",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_jtag_usb_vid_missing",
+   "source": "v2",
+   "what": "5.2: link.usb_vid is required in /2 with jtag too",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano20k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"71805340e8ffb0990c42dcbc49f5807bd0d527d312951a199b838ba5a2a4f524\", \"family\": \"gw2a\"}, \"link\": {\"kind\": \"jtag\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_pid_missing",
+   "source": "v2",
+   "what": "5.2: link.usb_pid is required in /2",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_jtag_usb_pid_missing",
+   "source": "v2",
+   "what": "5.2: link.usb_pid is required in /2 with jtag too",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano20k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"71805340e8ffb0990c42dcbc49f5807bd0d527d312951a199b838ba5a2a4f524\", \"family\": \"gw2a\"}, \"link\": {\"kind\": \"jtag\", \"usb_vid\": \"0x0403\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_uppercase",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"GW1N\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_empty",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_hyphen",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n-9c\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_trailing_newline",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\\n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_not_string",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": 1}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_null",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": null}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_family_list",
+   "source": "v2",
+   "what": "5.2 bitstream.family: ^[a-z0-9]+$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": [\"gw1n\"]}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_uppercase",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x04B4\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_3_digits",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_5_digits",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x00403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_no_prefix",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_integer",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": 1027, \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_null",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": null, \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_trailing_newline",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\\n\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_uppercase_x",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0X0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_pid_integer",
+   "source": "v2",
+   "what": "5.2 link.usb_pid: ^0x[0-9a-f]{4}$",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": 24592}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_usb_vid_zero",
+   "source": "v2",
+   "what": "5.2 link.usb_vid: 0x0000 has the form",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0000\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "design_id": "0xabf78d8c"
+   }
+  },
+  {
+   "name": "v2_link_extra_field",
+   "source": "v2",
+   "what": "5.2: no other items in link (/2)",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\", \"usb_serial\": \"A\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_bitstream_extra_field",
+   "source": "v2",
+   "what": "5.2: no other items in bitstream (/2)",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\", \"idcode\": \"0x0100481b\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v2_jtag_with_baudrate",
+   "source": "v2",
+   "what": "5.2 link.baudrate: not with jtag (/2)",
+   "text": "{\"format\": \"nanopynq-design/2\", \"board\": \"tangnano20k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"71805340e8ffb0990c42dcbc49f5807bd0d527d312951a199b838ba5a2a4f524\", \"family\": \"gw2a\"}, \"link\": {\"kind\": \"jtag\", \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\", \"baudrate\": 115200}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v1_with_family",
+   "source": "v2",
+   "what": "5.2: bitstream.family is not an item of /1",
+   "text": "{\"format\": \"nanopynq-design/1\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\", \"family\": \"gw1n\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v1_with_usb_vid",
+   "source": "v2",
+   "what": "5.2: link.usb_vid is not an item of /1",
+   "text": "{\"format\": \"nanopynq-design/1\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
+   }
+  },
+  {
+   "name": "v1_with_usb_ids",
+   "source": "v2",
+   "what": "5.2: link.usb_vid and link.usb_pid are not items of /1",
+   "text": "{\"format\": \"nanopynq-design/1\", \"board\": \"tangnano9k\", \"bitstream\": {\"file\": \"base.fs\", \"sha256\": \"3a2b9bec62534c24e1a676ada5349ce13f7ab4787e9b868e87d9e992830cdc8a\"}, \"link\": {\"kind\": \"uart\", \"baudrate\": 115200, \"usb_vid\": \"0x0403\", \"usb_pid\": \"0x6010\"}, \"design_id\": \"0xabf78d8c\", \"ips\": {\"sys\": {\"base\": \"0x0000\", \"type\": \"nanopynq:sysinfo:1.1\", \"registers\": {\"id\": {\"offset\": \"0x0\", \"width\": 32, \"access\": \"ro\"}, \"version\": {\"offset\": \"0x4\", \"width\": 32, \"access\": \"ro\"}, \"scratch\": {\"offset\": \"0x8\", \"width\": 32, \"access\": \"rw\"}, \"design_id\": {\"offset\": \"0xc\", \"width\": 32, \"access\": \"ro\"}}}, \"leds\": {\"base\": \"0x1000\", \"type\": \"nanopynq:gpio_out:1.0\", \"parameters\": {\"width\": 6}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 6, \"access\": \"rw\"}}}, \"buttons\": {\"base\": \"0x2000\", \"type\": \"nanopynq:gpio_in:1.0\", \"parameters\": {\"width\": 2}, \"registers\": {\"data\": {\"offset\": \"0x0\", \"width\": 2, \"access\": \"ro\"}}}}}",
+   "expect": {
+    "rule": "V3"
    }
   }
  ],

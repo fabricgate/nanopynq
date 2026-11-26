@@ -1,6 +1,8 @@
+from dataclasses import replace
+
 import pytest
 
-from nanopynq.boards import get_board, list_boards
+from nanopynq.boards import get_board, list_boards, npq_family, npq_link
 
 
 def test_tangnano9k_values():
@@ -60,3 +62,16 @@ def test_list_and_unknown():
     assert list_boards() == ["tangmega138kpro", "tangnano20k", "tangnano4k", "tangnano9k"]
     with pytest.raises(KeyError):
         get_board("nope")
+
+
+def test_what_a_npq_takes_from_the_board():
+    nine, four, twenty = (get_board(b) for b in ("tangnano9k", "tangnano4k", "tangnano20k"))
+    usb = {"usb_vid": "0x0403", "usb_pid": "0x6010"}
+    assert (npq_family(nine), npq_family(twenty)) == ("gw1n", "gw2a")
+    assert npq_link(nine, "uart") == {"kind": "uart", "baudrate": 115200, **usb}
+    assert npq_link(four, "jtag") == {"kind": "jtag", **usb}
+    assert npq_link(twenty, "uart") == {"kind": "uart", "baudrate": 115200, **usb}  # its uart_link
+    with pytest.raises(ValueError, match=r"tangnano4k.*no UART link"):
+        npq_link(four, "uart")
+    with pytest.raises(ValueError, match="no usb_vid / usb_pid"):
+        npq_link(replace(nine, host_link={"kind": "uart", "baudrate": 115200}), "uart")

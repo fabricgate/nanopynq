@@ -42,13 +42,24 @@ IPS = {
         "registers": {"data": {"offset": "0x0", "width": 2, "access": "ro"}},
     },
 }
-UART = {"kind": "uart", "baudrate": 115200}
+USB = {"usb_vid": "0x0403", "usb_pid": "0x6010"}  # every board in boards.yaml
+UART = {"kind": "uart", "baudrate": 115200, **USB}
+JTAG = {"kind": "jtag", **USB}
 
 
-def _write(folder: Path, ips=IPS, board="tangnano9k", link=UART) -> Path:
+def _write(folder: Path, ips=IPS, board="tangnano9k", link=UART, family="gw1n") -> Path:
     fs = folder / "base.fs"
     fs.write_bytes(b"dummy bitstream")
-    return write_npq(fs, board, link, ips)
+    return write_npq(fs, board, family, link, ips)
+
+
+def as_format_1(npq: Path) -> Path:
+    """Rewrite a written .npq as nanopynq-design/1: no family, no USB IDs (the design_id does not cover them)."""
+    doc = json.loads(npq.read_text(encoding="utf-8"))
+    doc["format"] = "nanopynq-design/1"
+    del doc["bitstream"]["family"], doc["link"]["usb_vid"], doc["link"]["usb_pid"]
+    npq.write_text(json.dumps(doc), encoding="utf-8")
+    return npq
 
 
 # ---------------------------------------------------------------- design_id: the spec's own examples
@@ -115,7 +126,7 @@ def test_write_refuses_to_overwrite_its_input(tmp_path):
     fs = tmp_path / "x.npq"
     fs.write_bytes(b"dummy bitstream")
     with pytest.raises(ManifestError, match="overwrite"):
-        write_npq(fs, "tangnano9k", UART, IPS)
+        write_npq(fs, "tangnano9k", "gw1n", UART, IPS)
     assert fs.read_bytes() == b"dummy bitstream"
 
 
@@ -211,6 +222,39 @@ def test_write_is_checked_and_fixed_bytes(tmp_path):
     assert _write(tmp_path).read_bytes() == first
 
 
+def test_write_is_format_2_with_the_family_and_the_usb_ids(tmp_path):
+    doc = json.loads(_write(tmp_path, family="gw2a").read_bytes())
+    assert doc["format"] == "nanopynq-design/2"
+    assert list(doc["bitstream"]) == ["file", "sha256", "family"] and doc["bitstream"]["family"] == "gw2a"
+    assert doc["link"] == UART
+    npq = load_npq(tmp_path)
+    assert (npq.family, npq.link) == ("gw2a", UART)
+
+
+def test_format_1_is_still_read_and_has_neither(tmp_path):
+    with_them = _write(tmp_path)
+    did = load_npq(with_them).design_id
+    npq = load_npq(as_format_1(with_them))
+    assert npq.family is None and npq.link == {"kind": "uart", "baudrate": 115200}
+    assert npq.design_id == did  # the new items are not in the design_id (spec 5.2.1)
+
+
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"family": "GW1N"},
+        {"family": ""},
+        {"link": {"kind": "uart", "baudrate": 115200}},
+        {"link": {**UART, "usb_vid": 0x0403}},
+        {"link": {**UART, "usb_pid": "0x60100"}},
+    ],
+)
+def test_write_needs_the_family_and_the_usb_ids_as_the_spec_writes_them(tmp_path, kw):
+    with pytest.raises(NpqError, match=r"^V3 at (bitstream\.family|link\.usb_)"):
+        _write(tmp_path, **kw)
+    assert not (tmp_path / "base.npq").exists()
+
+
 def test_write_keeps_the_ips_order(tmp_path):
     # same dict by ==, other insertion order: other bytes, same design_id
     first = _write(tmp_path).read_bytes()
@@ -220,7 +264,7 @@ def test_write_keeps_the_ips_order(tmp_path):
 
 
 def test_write_jtag_has_no_baudrate(tmp_path):
-    assert load_npq(_write(tmp_path, board="tangnano4k", link={"kind": "jtag"})).link == {"kind": "jtag"}
+    assert load_npq(_write(tmp_path, board="tangnano4k", link=JTAG)).link == JTAG
 
 
 @pytest.mark.parametrize(

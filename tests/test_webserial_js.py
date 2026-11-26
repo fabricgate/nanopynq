@@ -282,6 +282,7 @@ out.values = [["0x3f", 6], ["63", 6], ["64", 6], ["0X3F", 6], ["", 6], ["abc", 6
               ["0x100000000", 32]].map(([t, w]) => npqControls.parseValue(t, w));
 out.uart = npqConnect.serialOptions({ link: { kind: "uart", baudrate: 115200 } });
 try { npqConnect.serialOptions({ link: { kind: "jtag" } }); } catch (e) { out.jtag = e.message; }
+out.ids = [{ kind: "jtag", usb_vid: "0x0403", usb_pid: "0x6010" }, { kind: "jtag" }].map((link) => npqConnect.usbIds({ link }));
 console.log(JSON.stringify(out));
 """
 
@@ -398,6 +399,7 @@ def test_widgets_come_from_ips():
     assert out["values"] == [63, 63, None, 63, None, None, None, 0xFFFFFFFF, None]
     assert out["uart"] == {"baudRate": 115200}
     assert "only designs reached over UART" in out["jtag"]
+    assert out["ids"] == [{"vid": 0x0403, "pid": 0x6010}, None]  # None: a nanopynq-design/1 file
 
 
 # ---------------------------------------------------------------- the page in headless Chrome, with a fake port

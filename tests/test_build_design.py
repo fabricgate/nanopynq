@@ -13,6 +13,7 @@ from nanopynq.build.gowin import chparam_design_id
 from nanopynq.errors import BuildError, NpqError
 from nanopynq.npq import design_id, load_npq
 from tests.fakes import own_netlist, pwm_netlist
+from tests.test_npq import UART
 
 EXAMPLE = Path(__file__).resolve().parent.parent / "examples" / "tangnano9k_pwm"
 DATA = Path(__file__).resolve().parent / "data"
@@ -106,7 +107,7 @@ def test_a_20k_design_is_built_for_its_uart(design, tools_ok):
     """The 20K talks JTAG by default; nanopynq build uses its second link, the UART (boards.yaml uart_link)."""
     edit(design, 'board = "tangnano9k"', 'board = "tangnano20k"')
     npq = load_npq(bd.build_design(design, run=fake_run))
-    assert (npq.board, npq.link) == ("tangnano20k", {"kind": "uart", "baudrate": 115200})
+    assert (npq.board, npq.link) == ("tangnano20k", UART)
 
 
 def test_tangmega138kpro_is_a_build_target(design):
@@ -163,7 +164,7 @@ def test_build_writes_a_loadable_pair_and_a_record(design, tools_ok):
     dist = bd.build_design(design, run=fake_run)
     assert sorted(p.name for p in dist.iterdir()) == ["build.json", "pwm.fs", "pwm.npq"]
     npq = load_npq(dist)
-    assert npq.design_id == design_id(bd.load_config(design).ips) and npq.link == {"kind": "uart", "baudrate": 115200}
+    assert npq.design_id == design_id(bd.load_config(design).ips) and npq.link == UART
     rec = json.loads((dist / "build.json").read_text())
     assert [s["file"] for s in rec["sources"]][-2:] == ["top.v", "tangnano9k.cst"]
     assert rec["design_id"] == f"0x{npq.design_id:08x}" and str(design) not in json.dumps(rec)
@@ -485,7 +486,7 @@ def test_the_20k_examples_build_the_9k_circuits_for_the_20k_uart(
     d = bd.load_config(design)
     assert (d.board, d.sources[0][1]) == ("tangnano20k", tmp_path / design.name / ".." / example / f"{module}.v")
     npq = load_npq(bd.build_design(design, run=fake_run))
-    assert (npq.board, npq.link) == ("tangnano20k", {"kind": "uart", "baudrate": 115200})
+    assert (npq.board, npq.link) == ("tangnano20k", UART)
     ip = npq.ips[name]
     assert (ip["phys_addr"], ip["type"], ip["addr_range"], ip["parameters"]) == (0x7000, type_, addr_range, params)
     assert {k: (r["offset"], r["width"], r["access"]) for k, r in ip["registers"].items()} == regs
@@ -494,7 +495,7 @@ def test_the_20k_examples_build_the_9k_circuits_for_the_20k_uart(
 def test_the_20k_pwm_example_is_the_9k_one_on_the_20k_uart(tmp_path, tools_ok):
     design = _copy_examples(tmp_path, "tangnano20k_pwm")
     npq = load_npq(bd.build_design(design, run=fake_run))
-    assert (npq.board, npq.link) == ("tangnano20k", {"kind": "uart", "baudrate": 115200})
+    assert (npq.board, npq.link) == ("tangnano20k", UART)
     assert list(npq.ips) == ["sys", "leds", "buttons", "pwm"] and npq.ips["pwm"]["type"] == "nanopynq:pwm_timer:1.0"
 
 
