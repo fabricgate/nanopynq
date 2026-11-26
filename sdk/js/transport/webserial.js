@@ -40,6 +40,12 @@ class SerialLink {
     }
   }
   resetInput() { this.buf.length = 0; }
+  // Holds a break on the line for ms (pyserial's send_break).
+  async sendBreak(ms) {
+    await this.port.setSignals({ break: this.breaking = true });
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    if (this.breaking) await this.port.setSignals({ break: this.breaking = false });
+  }
   write(bytes) {
     if (this.closed) return Promise.reject(new Error("port closed"));
     return this.writer.write(bytes);
@@ -73,6 +79,7 @@ class SerialLink {
   async close() {
     this.closed = true;
     if (this.waiter) this.waiter(); // a waiting read fails now, not at its timeout
+    if (this.breaking) try { await this.port.setSignals({ break: this.breaking = false }); } catch {} // not left on
     try { await this.reader.cancel(); } catch {}
     await this.pump;
     try { this.reader.releaseLock(); this.writer.releaseLock(); } catch {}
