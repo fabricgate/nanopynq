@@ -156,10 +156,14 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   // open() drops what the debugger kept from before, in pieces, and returns once the line is quiet
   port = fakePort();
   link = new SerialLink(port);
+  const stale = () => port.rx.enqueue(Uint8Array.from("15 M: 0x", (c) => c.charCodeAt(0)));
+  const t4 = performance.now();
   const opening = link.open({ baudRate: 115200 });
-  await tick();
-  for (const delay of [0, 30, 60]) setTimeout(() => port.rx.enqueue(Uint8Array.from("15 M: 0x", (c) => c.charCodeAt(0))), delay);
+  stale();
+  for (const delay of [80, 160]) setTimeout(stale, delay); // each piece restarts the quiet time
   await opening;
+  out.staleOpenMs = performance.now() - t4;
+  await tick();
   out.staleLeft = link.buf.length;
   const clean = link.readExactly(4, 1000);
   port.rx.enqueue(Uint8Array.of(0x4e, 0x50, 0x51, 0x31));
@@ -202,7 +206,7 @@ def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors(
     assert out["readErrors"] == ["device lost"]
     assert out["afterError"] == "timeout: expected 1 bytes, got 0"
     assert out["failedWhileClosing"] == [] and out["closedAfterFailure"] == 1
-    assert out["staleLeft"] == 0 and out["afterStale"] == [0x4E, 0x50, 0x51, 0x31]
+    assert 250 < out["staleOpenMs"] < 900 and out["staleLeft"] == 0 and out["afterStale"] == [0x4E, 0x50, 0x51, 0x31]
     assert 900 < out["noisyOpenMs"] < 2000
     assert out["noCallback"] == "ok"
 

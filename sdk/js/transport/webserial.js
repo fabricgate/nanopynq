@@ -21,7 +21,7 @@ class SerialLink {
     // What the board sent while the port was closed (the boot text of the design in the flash) is kept by the
     // debugger and arrives right after open; resetInput() cannot reach it. Drop input until QUIET_MS pass without
     // any, for at most DRAIN_MAX_MS (a design that never stops sending).
-    for (let seen = -1, t = 0; seen !== this.buf.length && t < DRAIN_MAX_MS; t += QUIET_MS) {
+    for (let seen = -1, end = performance.now() + DRAIN_MAX_MS; seen !== this.buf.length && performance.now() < end;) {
       seen = this.buf.length;
       await new Promise((resolve) => setTimeout(resolve, QUIET_MS));
     }
