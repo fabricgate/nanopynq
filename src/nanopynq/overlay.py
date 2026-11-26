@@ -73,14 +73,32 @@ class Overlay:
             raise ManifestError(f"board {board!r} does not match manifest board {self.manifest.board!r}")
         self.board = get_board(self.manifest.board)
         link = self.board.host_link
-        if isinstance(self.manifest, Npq):  # the file's link (spec 10.7); USB VID / PID stay from boards.yaml
+        if isinstance(self.manifest, Npq):  # the file's link (spec 10.7)
             kind = self.manifest.link["kind"]
             if kind != link["kind"] and not (kind == "uart" and uart_link(self.board)):  # the 20K's second link
                 raise ManifestError(
                     f"{self.design_dir}: link.kind is {self.manifest.link['kind']!r}, but nanopynq talks to "
                     f"{self.board.board_id} over {link['kind']!r}; rebuild the design for this board"
                 )
-            link = {**link, **self.manifest.link}
+            if self.manifest.family is not None:  # nanopynq-design/2
+                # Spec chapter 10, row 12: the family and the USB IDs are in the file for hosts without
+                # boards.yaml. Here boards.yaml stays in use, so a file that disagrees stops before anything is
+                # programmed.
+                pairs = {
+                    "bitstream.family": (self.manifest.family, self.board.programmer.get("family")),
+                    "link.usb_vid": (int(self.manifest.link["usb_vid"], 16), link.get("usb_vid")),
+                    "link.usb_pid": (int(self.manifest.link["usb_pid"], 16), link.get("usb_pid")),
+                }
+                for where, (file, mine) in pairs.items():
+                    if file != mine:
+                        show = str if where == "bitstream.family" else (lambda v: f"0x{v:04x}")
+                        raise ManifestError(
+                            f"{self.design_dir}: {where} is {show(file)}, but nanopynq's boards.yaml has "
+                            f"{show(mine) if mine is not None else 'none'} for {self.board.board_id}; "
+                            "rebuild the design for this board"
+                        )
+            # kind and baudrate from the file; the USB IDs stay boards.yaml's integers
+            link = {**link, **{k: v for k, v in self.manifest.link.items() if k in ("kind", "baudrate")}}
         self._link_kind = link["kind"]  # the link in use, which on the 20K need not be host_link's
         if download:
             programmer(self.board, self.manifest.bitstream)

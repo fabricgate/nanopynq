@@ -1,13 +1,16 @@
 {
-  "format": "nanopynq-design/1",
+  "format": "nanopynq-design/2",
   "board": "tangnano9k",
   "bitstream": {
     "file": "base.fs",
-    "sha256": "0e15164811e398367ddab57c192050994d22d441b66fed5982290182d8e61ef8"
+    "sha256": "0e15164811e398367ddab57c192050994d22d441b66fed5982290182d8e61ef8",
+    "family": "gw1n"
   },
   "link": {
     "kind": "uart",
-    "baudrate": 115200
+    "baudrate": 115200,
+    "usb_vid": "0x0403",
+    "usb_pid": "0x6010"
   },
   "design_id": "0xabf78d8c",
   "ips": {

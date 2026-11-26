@@ -44,6 +44,7 @@
 const POLL_MS = 50;
 // The FT2232-compatible debugger of the Tang Nano. On Windows (9K) only its UART gets a port, with or without Zadig,
 // named after the debugger ("JTAG Debugger (COM3)"); where both interfaces get one, only one is the UART.
+// For a nanopynq-design/1 file, which does not name its debugger: the one of every Tang board so far.
 const PORT_FILTERS = [{ usbVendorId: 0x0403, usbProductId: 0x6010 }];
 
 const $ = (id) => document.getElementById(id);
@@ -143,7 +144,9 @@ $("connect").addEventListener("click", async () => {
   $("ips").replaceChildren();
   let port;
   try {
-    port = await navigator.serial.requestPort({ filters: PORT_FILTERS });
+    const ids = npqConnect.usbIds(doc);
+    const filters = ids ? [{ usbVendorId: ids.vid, usbProductId: ids.pid }] : PORT_FILTERS;
+    port = await navigator.serial.requestPort({ filters });
   } catch (e) {
     log(`no port chosen: ${e.message}`);
     await disconnect(c, "No port chosen. Connect again to choose one.");

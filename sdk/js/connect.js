@@ -24,6 +24,14 @@ const npqConnect = (() => {
     return { baudRate: doc.link.baudrate };
   }
 
+  // The USB IDs of the board's debugger as numbers, for the filters of navigator.serial.requestPort (usbVendorId,
+  // usbProductId) and navigator.usb.requestDevice (vendorId, productId). null for a nanopynq-design/1 file, which
+  // has none: the page then asks without a filter, or uses its own.
+  function usbIds(doc) {
+    const { usb_vid: vid, usb_pid: pid } = doc.link;
+    return vid === undefined ? null : { vid: parseInt(vid, 16), pid: parseInt(pid, 16) };
+  }
+
   // Reads sys.id, sys.version and (sysinfo 1.1 or later on the board) sys.design_id, and nothing else.
   // Resolves to what was read when the board runs the design of `doc`; throws an Error that says why not otherwise.
   // noAnswer: what to say when sys.id gets no answer (at connect time: the port or the design is wrong).
@@ -55,7 +63,7 @@ const npqConnect = (() => {
     return { id, version, designId };
   }
 
-  return { serialOptions, checkBoard };
+  return { serialOptions, usbIds, checkBoard };
 })();
 
 if (typeof module !== "undefined") module.exports = npqConnect;

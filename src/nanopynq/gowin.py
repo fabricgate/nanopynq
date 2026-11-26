@@ -31,6 +31,7 @@ RELOAD = 0x3C
 CRC_ERROR, MEMORY_ERASE, SYSTEM_EDIT_MODE, DONE_FINAL = 1 << 0, 1 << 5, 1 << 7, 1 << 13
 # A healthy GW1N reports POR, READY and VLD (9K 0x0003f020, 4K 0x0001f020); the GW2A never does (20K 0x00006020).
 GW1N_OK = 1 << 16 | 1 << 15 | 1 << 12
+FAMILIES = ("gw1n", "gw2a", "gw5a")  # the families load_sram has a sequence for
 # A GW5A reporting BAD_COMMAND, TIMEOUT or AUTO_BOOT_2ND_FAIL needs openFPGALoader's 0x3F recovery, which this loader
 # leaves out.
 GW5A_ERROR = 1 << 1 | 1 << 3 | 1 << 4
@@ -156,6 +157,12 @@ def load_sram(jtag: Jtag, data: bytes, idcode: int, family: str, max_polls: int 
     board's IDCODE without the version nibble. Raises ProgramError on any failure."""
     if max_polls < 1:
         raise ValueError(f"max_polls must be at least 1, not {max_polls}")
+    if family not in FAMILIES:  # spec 5.2: before anything is erased, and before the board is touched
+        raise ProgramError(
+            f"SRAM load refused: nanopynq has no loading sequence for the family {family!r} "
+            f"(it has {', '.join(FAMILIES)})",
+            f"family {family!r}",
+        )
     jtag.tms("11111")  # Test-Logic-Reset
     jtag.tms("0")  # Run-Test/Idle
     jtag.flush()

@@ -5,21 +5,22 @@ import warnings
 import pytest
 
 from nanopynq import Overlay
-from nanopynq.errors import BoardNotResponding, DesignMismatch, ManifestError, NpqError
+from nanopynq.boards import get_board, npq_family
+from nanopynq.errors import BoardNotResponding, DesignMismatch, ManifestError, NpqError, TransportTimeout
 from nanopynq.npq import write_npq
 from tests.fakes import FakeUARTBoneDevice
 from tests.test_npq import IPS as IPS_1_0
-from tests.test_npq import NINE_K
+from tests.test_npq import JTAG, NINE_K, UART, as_format_1
 
 ID, V1_0, V1_1 = 0x4E505131, 0x0001_0000, 0x0001_0001
 DID = 0xABF78D8C  # NINE_K's design_id
 SYS_WORDS = {0, 1, 3}  # sys.id, sys.version, sys.design_id as word addresses
 
 
-def _npq(folder, ips=NINE_K["ips"], link=None, board="tangnano9k"):
+def _npq(folder, ips=NINE_K["ips"], link=None, board="tangnano9k", family=None):
     fs = folder / "base.fs"
     fs.write_bytes(b"dummy bitstream")
-    return write_npq(fs, board, link or {"kind": "uart", "baudrate": 115200}, ips)
+    return write_npq(fs, board, family or npq_family(get_board(board)), link or UART, ips)
 
 
 def _device(version=V1_1, did=DID):
@@ -108,7 +109,7 @@ def test_npq_1_0_on_a_1_1_board_still_compares(tmp_path):  # spec 5.7 step 6 loo
 
 
 def test_link_comes_from_the_file(tmp_path):
-    _npq(tmp_path, link={"kind": "uart", "baudrate": 57600})
+    _npq(tmp_path, link={**UART, "baudrate": 57600})
     seen = []
     Overlay(
         tmp_path,
@@ -121,9 +122,60 @@ def test_link_comes_from_the_file(tmp_path):
 
 
 def test_link_kind_other_than_the_boards_is_refused_before_programming(tmp_path):
-    _npq(tmp_path, link={"kind": "jtag"})
+    _npq(tmp_path, link=JTAG)
     with pytest.raises(ManifestError, match=r"link.kind"):
         Overlay(tmp_path, port="X", programmer=pytest.fail, open_port=pytest.fail, open_jtag=pytest.fail)
+
+
+@pytest.mark.parametrize(
+    "change, where",
+    [
+        ({"family": "gw2a"}, r"bitstream.family is gw2a.*has gw1n"),
+        ({"link": {**UART, "usb_vid": "0x1234"}}, r"link.usb_vid is 0x1234.*has 0x0403"),
+        ({"link": {**UART, "usb_pid": "0x6011"}}, r"link.usb_pid is 0x6011.*has 0x6010"),
+    ],
+)
+def test_family_or_usb_ids_other_than_the_boards_are_refused_before_programming(tmp_path, change, where):
+    """Spec chapter 10, row 12: boards.yaml stays in use here, so a file that disagrees with it is not programmed,
+    and not opened without programming either."""
+    _npq(tmp_path, **change)
+    for download in (True, False):
+        with pytest.raises(ManifestError, match=where):
+            Overlay(
+                tmp_path,
+                download=download,
+                port="X",
+                programmer=pytest.fail,
+                open_port=pytest.fail,
+                open_jtag=pytest.fail,
+            )
+
+
+def test_a_jtag_design_reaches_the_bridge_with_the_boards_integer_usb_ids(tmp_path, monkeypatch):
+    """The file writes the IDs as hex strings; what opens the USB device gets boards.yaml's integers."""
+    monkeypatch.setattr("nanopynq.overlay._sleep", lambda s: None)
+    _npq(tmp_path, link=JTAG, board="tangnano4k")
+    seen = []
+
+    def open_jtag(link):  # no bridge behind it: only what it was handed matters
+        seen.append(link)
+        raise TransportTimeout(8, 0)
+
+    with pytest.raises(BoardNotResponding):
+        Overlay(tmp_path, programmer=lambda b, f: None, open_jtag=open_jtag)
+    assert seen == [{"kind": "jtag", "usb_vid": 0x0403, "usb_pid": 0x6010}]
+
+
+def test_a_format_1_file_still_opens_with_the_boards_values(tmp_path):
+    as_format_1(_npq(tmp_path))
+    seen = []
+    ol = Overlay(
+        tmp_path,
+        port="X",
+        programmer=lambda board, fs: seen.append(board.programmer["family"]),
+        open_port=lambda p, baud: seen.append(baud) or _device(),
+    )
+    assert seen == ["gw1n", 115200] and ol.manifest.family is None
 
 
 def test_a_20k_design_on_its_uart_is_programmed_and_opened_over_serial(tmp_path):

@@ -1,7 +1,7 @@
 {
   "design": "tangmega138kpro-base",
   "command": "uv run python tools/build_base.py --board tangmega138kpro --design base --seed 1",
-  "commit": "0ef33aff560ccfb91593eed1e00e8b6805f0d63d",
+  "commit": "b0fc750848cc46172e796d082165acbadb235aed",
   "dirty": false,
   "seed": 1,
   "sources": [
@@ -49,7 +49,7 @@
     "yowasp-runtime": "1.96",
     "wasmtime": "47.0.1"
   },
-  "python": "3.11.15",
-  "os": "Windows AMD64",
+  "python": "3.13.14",
+  "os": "Linux x86_64",
   "bitstream_sha256": "6bfbf7a4045831a46bb552027b1c5e7e6a58915e08c4e33569f8eccc969adc3c"
 }

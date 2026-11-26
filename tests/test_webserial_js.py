@@ -282,6 +282,7 @@ out.values = [["0x3f", 6], ["63", 6], ["64", 6], ["0X3F", 6], ["", 6], ["abc", 6
               ["0x100000000", 32]].map(([t, w]) => npqControls.parseValue(t, w));
 out.uart = npqConnect.serialOptions({ link: { kind: "uart", baudrate: 115200 } });
 try { npqConnect.serialOptions({ link: { kind: "jtag" } }); } catch (e) { out.jtag = e.message; }
+out.ids = [{ kind: "jtag", usb_vid: "0x0403", usb_pid: "0x6010" }, { kind: "jtag" }].map((link) => npqConnect.usbIds({ link }));
 console.log(JSON.stringify(out));
 """
 
@@ -398,6 +399,7 @@ def test_widgets_come_from_ips():
     assert out["values"] == [63, 63, None, 63, None, None, None, 0xFFFFFFFF, None]
     assert out["uart"] == {"baudRate": 115200}
     assert "only designs reached over UART" in out["jtag"]
+    assert out["ids"] == [{"vid": 0x0403, "pid": 0x6010}, None]  # None: a nanopynq-design/1 file
 
 
 # ---------------------------------------------------------------- the page in headless Chrome, with a fake port
@@ -436,7 +438,8 @@ class FakePort {
 }
 Object.defineProperty(navigator, "serial", { configurable: true,
   value: { fake: true,
-    async requestPort() {
+    async requestPort(options) {
+      fake.filters = options && options.filters;
       if (fake.cancel) throw new DOMException("No port selected by the user.", "NotFoundError");
       const p = new FakePort();
       fake.ports.push(p);
@@ -480,6 +483,7 @@ const done = () => { document.getElementById("result").textContent = JSON.string
   out.summaryHasImg = !!$("summary").querySelector("img");
   out.connected = await connect(board);
   out.opened = fake.opened;
+  out.filters = fake.filters;
   out.toggles = [...document.querySelectorAll("#ips input[type=checkbox]")].map((b) => b.checked);
   out.lamps = [...document.querySelectorAll(".lamp")].map((s) => s.textContent);
   out.legends = [...document.querySelectorAll("legend")].map((l) => l.textContent);
@@ -524,8 +528,9 @@ def test_page_flow_in_chrome(tmp_path):
     good = json.loads(base_text)
     good["name"] = "<img src=x onerror=errors.push('name')>"  # top-level strings are not checked (spec 5.2)
     good["ips"]["leds"]["doc"] = "<i>six</i> LEDs"  # doc is not part of the design_id
+    good["link"]["usb_vid"] = "0x1a86"  # not the page's own default: the chooser must be asked for the file's
     jtag = json.loads(base_text)
-    jtag["link"] = {"kind": "jtag"}
+    jtag["link"] = {"kind": "jtag", "usb_vid": jtag["link"]["usb_vid"], "usb_pid": jtag["link"]["usb_pid"]}
     files = {
         "broken.npq": '{"format": "nanopynq-design/1", "board": 6.0}',
         "base.npq": json.dumps(good),
@@ -543,6 +548,7 @@ def test_page_flow_in_chrome(tmp_path):
     c = out["connected"]
     assert c["status"] == "Connected: the board runs design 0xabf78d8c" and c["fieldsets"] == 3
     assert out["opened"][0] == {"baudRate": 115200}
+    assert out["filters"] == [{"usbVendorId": 0x1A86, "usbProductId": 0x6010}]  # link.usb_vid / usb_pid of the file
     assert c["wire"][:3] == [["r", 0x0], ["r", 0x4], ["r", 0xC]]  # the check comes before anything else
     assert ["r", 0x2000] in c["wire"] and all(rw == "r" for rw, _ in c["wire"])
     assert out["toggles"] == [True, False, True, False, False, False]

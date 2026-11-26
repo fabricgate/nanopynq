@@ -23,6 +23,13 @@ def test_read_fs_rejects_bad_line(tmp_path, bad):  # Review Focus 4
         read_fs(p)
 
 
+def test_a_family_without_a_sequence_is_refused_before_the_board_is_touched():
+    dev = FakeGowinDevice()
+    with pytest.raises(ProgramError, match=r"no loading sequence for the family 'gw9z'"):
+        load_sram(dev, b"\x00", 0x0000081B, "gw9z")
+    assert dev.log == [] and dev.state == "TLR"  # nothing was sent
+
+
 def test_max_polls_below_one_is_a_value_error():
     with pytest.raises(ValueError, match="max_polls"):
         load_sram(FakeGowinDevice(), b"\x00", 0x0000081B, "gw2a", max_polls=0)

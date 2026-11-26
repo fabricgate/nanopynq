@@ -7,7 +7,9 @@
 "use strict";
 
 const npq = (() => {
-  const FORMAT = "nanopynq-design/1";
+  const FORMAT = "nanopynq-design/2";
+  // /1 has no bitstream.family, link.usb_vid or link.usb_pid: a page cannot load its .fs without a board table
+  const FORMATS = ["nanopynq-design/1", FORMAT];
   const MAX_BYTES = 1 << 20;
   const MAX_DEPTH = 64; // objects and lists; the top object is 1
   const MAX_SAFE = Number.MAX_SAFE_INTEGER;
@@ -18,6 +20,8 @@ const npq = (() => {
   const BOARD = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
   const FILE = /^[A-Za-z0-9_][A-Za-z0-9._-]*$/;
   const SHA256 = /^[0-9a-f]{64}$/;
+  const FAMILY = /^[a-z0-9]+$/; // open: a loader refuses a family it does not know
+  const USB_ID = /^0x[0-9a-f]{4}$/;
   const DESIGN_ID = /^0x[0-9a-f]{8}$/;
   const NAME = /^[a-z][a-z0-9_]*$/;
   const HEX = /^0x[0-9a-f]+$/;
@@ -116,18 +120,24 @@ const npq = (() => {
   // ---------------------------------------------------------------- V2, V3: the top level
 
   function v2(doc) {
-    if (!has(doc, "format") || doc.format !== FORMAT) fail("V2", "format", `must be ${show(FORMAT)}, got ${show(doc.format)}`);
+    if (!has(doc, "format") || !FORMATS.includes(doc.format)) {
+      fail("V2", "format", `must be one of ${show(FORMATS)}, got ${show(doc.format)}`);
+    }
   }
 
   function v3(doc) {
     for (const k of ["board", "bitstream", "link", "design_id", "ips"]) if (!has(doc, k)) fail("V3", k, "missing");
     if (!matches(BOARD, doc.board)) fail("V3", "board", `bad board name ${show(doc.board)}`);
-    for (const [k, fields] of [["bitstream", ["file", "sha256"]], ["link", ["kind", "baudrate"]]]) {
+    const v2 = doc.format === FORMAT; // V2 passed: the format is /1 or /2
+    const bitFields = v2 ? [["family", FAMILY]] : [];
+    const usbFields = v2 ? [["usb_vid", USB_ID], ["usb_pid", USB_ID]] : [];
+    const names = (extra) => extra.map(([f]) => f);
+    for (const [k, fields] of [["bitstream", ["file", "sha256", ...names(bitFields)]], ["link", ["kind", "baudrate", ...names(usbFields)]]]) {
       if (!isObj(doc[k])) fail("V3", k, "must be an object");
       for (const f of Object.keys(doc[k])) if (!fields.includes(f)) fail("V3", `${k}.${f}`, "unknown field");
     }
     const bit = doc.bitstream;
-    for (const [f, re] of [["file", FILE], ["sha256", SHA256]]) {
+    for (const [f, re] of [["file", FILE], ["sha256", SHA256], ...bitFields]) {
       if (!has(bit, f)) fail("V3", `bitstream.${f}`, "missing");
       if (!matches(re, bit[f])) fail("V3", `bitstream.${f}`, `bad value ${show(bit[f])}`);
     }
@@ -139,6 +149,10 @@ const npq = (() => {
       const b = link.baudrate;
       if (!isInt(b) || b < 1 || b > MAX_SAFE) fail("V3", "link.baudrate", `uart needs an integer 1 .. 2^53 - 1, got ${show(b)}`);
     } else if (has(link, "baudrate")) fail("V3", "link.baudrate", "not allowed with jtag");
+    for (const [f, re] of usbFields) {
+      if (!has(link, f)) fail("V3", `link.${f}`, "missing");
+      if (!matches(re, link[f])) fail("V3", `link.${f}`, `must be 0x and 4 lowercase hex digits, got ${show(link[f])}`);
+    }
     if (!matches(DESIGN_ID, doc.design_id)) {
       fail("V3", "design_id", `must be 0x and 8 lowercase hex digits, got ${show(doc.design_id)}`);
     }

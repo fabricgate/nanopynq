@@ -2,7 +2,9 @@
 
 tests/data/npq_vectors.json is the input file of experiment A6 (issue #24), copied byte for byte from
 experiments/a6_conformance/vectors.json at commit d538695. Its expectations were written by hand from the spec, so it
-is kept as the reference and is not regenerated here; change it only together with the spec (#24).
+is kept as the reference and is not regenerated here; change it only together with the spec (#24). The cases with
+source "v2" came with nanopynq-design/2 (bitstream.family, link.usb_vid, link.usb_pid), which also turned the old
+"format_2" case from V2 into V3.
 Each case holds the file contents ("text" as UTF-8, or "base64"; "pad_to" N: spaces appended up to N bytes) and
 "expect": {"design_id": "0x..."} (accepted) or {"rule": "Vn"} (rejected). The place is not compared (spec 5.9).
 """
@@ -38,8 +40,8 @@ def _result(data: bytes) -> dict:
 
 def test_vectors_file():
     expects = [c["expect"] for c in VECTORS["cases"]]
-    assert len(expects) == 286 and VECTORS["undecided"] == []
-    assert sum("design_id" in e for e in expects) == 74
+    assert len(expects) == 318 and VECTORS["undecided"] == []
+    assert sum("design_id" in e for e in expects) == 78
     assert {e["rule"] for e in expects if "rule" in e} == {f"V{i}" for i in range(1, 12)}
 
 
@@ -87,6 +89,9 @@ POOL = [
     "nanopynq:sysinfo:1.1",
     "nanopynq:x:01.1",
     "nanopynq-design/1",
+    "nanopynq-design/2",
+    "gw1n",
+    "0x0403",
     "a" * 256,
     [],
     [1, "a", True],
@@ -122,6 +127,9 @@ NAMES = [
     "baudrate",
     "file",
     "sha256",
+    "family",
+    "usb_vid",
+    "usb_pid",
     "name",
     "__proto__",
 ]

@@ -15,7 +15,7 @@ import pytest
 from nanopynq import Overlay
 from nanopynq.npq import Npq, write_npq
 from nanopynq.resolve import WARNINGS, resolve_design
-from tests.test_npq import NINE_K
+from tests.test_npq import NINE_K, UART
 from tests.test_overlay_npq import _device, _open
 
 REF = "fabricgate://harurun78/tangnano9k-pwm:1.0.0"
@@ -26,7 +26,7 @@ SDK_MODULES = ("fabricgate", "fabricgate.sdk", "fabricgate.client", "fabricgate.
 def _pulled(folder):
     """What `fabricgate pull` leaves: FabricGate's manifest.yaml next to the .fs and the .npq (deps/ may be there)."""
     (folder / "pwm.fs").write_bytes(b"dummy bitstream")
-    write_npq(folder / "pwm.fs", "tangnano9k", {"kind": "uart", "baudrate": 115200}, NINE_K["ips"])
+    write_npq(folder / "pwm.fs", "tangnano9k", "gw1n", UART, NINE_K["ips"])
     (folder / "manifest.yaml").write_text(
         "schema: fabricgate-platform/v1\nruntime: nanopynq\nboard: tangnano9k\n"
         "design_ref: harurun78/tangnano9k-pwm:1.0.0\nartifacts:\n"
