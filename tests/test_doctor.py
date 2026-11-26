@@ -184,6 +184,7 @@ def test_bundled_rule_unbinds_the_serial_driver_from_the_jtag_interface_only():
         'ATTRS{idVendor}=="0403"',
         'ATTRS{idProduct}=="6010"',
         'ATTRS{manufacturer}=="SIPEED"',  # not every FT2232 adapter
+        'ATTRS{product}=="JTAG Debugger|USB Debugger"',  # the Tang boards' debuggers (9K, 4K | 20K, 138K Pro)
     ):
         assert key in unbind, key
     assert unbind.endswith("""RUN+="/bin/sh -c 'echo %k > /sys/bus/usb/drivers/ftdi_sio/unbind'\"""")

@@ -5,7 +5,8 @@
 ACTION=="add", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="0664", GROUP="plugdev", TAG+="uaccess"
 # Linux binds its serial driver (ftdi_sio) to both interfaces when the board is plugged in. A browser (WebUSB) cannot
 # open the JTAG interface (Interface 0) while that driver holds it, and cannot take it away either, so the driver is
-# unbound from Interface 0 right after it binds. Interface 1 (the UART, /dev/ttyUSB*) is left alone. Only Sipeed's
-# debuggers: another FT2232 adapter (manufacturer FTDI) keeps both of its serial ports. nanopynq's Python and
+# unbound from Interface 0 right after it binds. Interface 1 (the UART, /dev/ttyUSB*) is left alone. Only the Tang
+# boards' debuggers (SIPEED "JTAG Debugger": 9K, 4K; "USB Debugger": 20K, Mega 138K Pro): another FT2232 adapter
+# (manufacturer FTDI), or another Sipeed product with these IDs, keeps both of its serial ports. nanopynq's Python and
 # openFPGALoader are not affected: they take Interface 0 from the driver themselves.
-ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="ftdi_sio", ATTR{bInterfaceNumber}=="00", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ATTRS{manufacturer}=="SIPEED", RUN+="/bin/sh -c 'echo %k > /sys/bus/usb/drivers/ftdi_sio/unbind'"
+ACTION=="bind", SUBSYSTEM=="usb", DRIVER=="ftdi_sio", ATTR{bInterfaceNumber}=="00", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ATTRS{manufacturer}=="SIPEED", ATTRS{product}=="JTAG Debugger|USB Debugger", RUN+="/bin/sh -c 'echo %k > /sys/bus/usb/drivers/ftdi_sio/unbind'"
