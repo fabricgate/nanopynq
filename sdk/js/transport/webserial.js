@@ -40,6 +40,12 @@ class SerialLink {
     }
   }
   resetInput() { this.buf.length = 0; }
+  // Holds a break on the line for ms (pyserial's send_break).
+  async sendBreak(ms) {
+    await this.port.setSignals({ break: true });
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await this.port.setSignals({ break: false });
+  }
   write(bytes) {
     if (this.closed) return Promise.reject(new Error("port closed"));
     return this.writer.write(bytes);

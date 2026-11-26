@@ -180,6 +180,16 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   out.noisyOpenMs = performance.now() - t3;
   clearInterval(chatter);
   await link.close();
+  // sendBreak holds the break signal for the time asked
+  port = fakePort();
+  port.signals = [];
+  port.setSignals = async (s) => { port.signals.push([s, Math.round(performance.now())]); };
+  link = new SerialLink(port);
+  await link.open({ baudRate: 115200 });
+  await link.sendBreak(60);
+  out.breakSignals = port.signals.map(([s]) => s);
+  out.breakMs = port.signals[1][1] - port.signals[0][1];
+  await link.close();
   // without a callback the failure is dropped, not thrown
   port = fakePort();
   link = new SerialLink(port);
@@ -208,6 +218,7 @@ def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors(
     assert out["failedWhileClosing"] == [] and out["closedAfterFailure"] == 1
     assert 250 < out["staleOpenMs"] < 900 and out["staleLeft"] == 0 and out["afterStale"] == [0x4E, 0x50, 0x51, 0x31]
     assert 900 < out["noisyOpenMs"] < 2000
+    assert out["breakSignals"] == [{"break": True}, {"break": False}] and 50 <= out["breakMs"] < 500
     assert out["noCallback"] == "ok"
 
 
@@ -223,7 +234,9 @@ const { UARTBone } = require("./sdk/js/transport/uartbone.js");
 const npqConnect = require("./sdk/js/connect.js");
 (async () => {
   const out = [];
-  for (const { doc, regs, silent } of JSON.parse(process.argv[1])) {
+  for (const { doc, regs, silent: quiet, wakes } of JSON.parse(process.argv[1])) {
+    let silent = quiet;
+    const breaks = [];
     const sent = [];
     let rx = [];
     const port = {  // answers every read from regs (byte address -> value); unmapped reads give 0xdeadbeef
@@ -236,10 +249,11 @@ const npqConnect = require("./sdk/js/connect.js");
       },
       async readExactly(n) { if (rx.length < n) throw new Error("timeout"); return Uint8Array.from(rx.splice(0, n)); },
     };
+    if (wakes !== undefined) port.sendBreak = async (ms) => { breaks.push(ms); silent = !wakes; };
     try {
-      out.push({ ok: await npqConnect.checkBoard(doc, new UARTBone(port, 10)), sent });
+      out.push({ ok: await npqConnect.checkBoard(doc, new UARTBone(port, 10)), sent, breaks });
     } catch (e) {
-      out.push({ error: e.message, sent });
+      out.push({ error: e.message, sent, breaks });
     }
   }
   console.log(JSON.stringify(out));
@@ -301,6 +315,19 @@ def test_check_board_stops_after_sys_id():
     )
     assert "not a nanopynq design" in wrong["error"] and wrong["accesses"] == [("r", 0x0)]
     assert "No answer" in silent["error"] and silent["accesses"] == [("r", 0x0)]
+
+
+def test_check_board_wakes_a_silent_port_with_one_break():
+    board = _board(V11, 0xABF78D8C)
+    woke, still, answering = _check(
+        {"doc": _doc("1.1"), "regs": board, "silent": True, "wakes": True},
+        {"doc": _doc("1.1"), "regs": board, "silent": True, "wakes": False},
+        {"doc": _doc("1.1"), "regs": board, "wakes": True},
+    )
+    assert woke["ok"]["designId"] == 0xABF78D8C and woke["breaks"] == [250]
+    assert woke["accesses"] == [("r", 0x0), ("r", 0x0), ("r", 0x4), ("r", 0xC)]
+    assert "No answer" in still["error"] and still["breaks"] == [250] and still["accesses"] == [("r", 0x0)] * 2
+    assert answering["breaks"] == []  # a port that answers gets none
 
 
 _PLAN = """
