@@ -35,8 +35,12 @@ const npqConnect = (() => {
 
   // Reads sys.id, sys.version and (sysinfo 1.1 or later on the board) sys.design_id, and nothing else.
   // Resolves to what was read when the board runs the design of `doc`; throws an Error that says why not otherwise.
-  // noAnswer: what to say when sys.id gets no answer (at connect time: the port or the design is wrong).
-  async function checkBoard(doc, bone, noAnswer = "wrong port (try the other one), or no design is programmed") {
+  // noAnswer: what to say when sys.id gets no answer. Without it this is the check at connect time: the port or the
+  // design is wrong, and a silent UART is first woken with a break. A later check (a page's poll) passes its own
+  // words and gets no break: other requests share the link by then, and one sent under a break is lost.
+  async function checkBoard(doc, bone, noAnswer) {
+    const connecting = noAnswer === undefined;
+    if (connecting) noAnswer = "wrong port (try the other one), or no design is programmed";
     let id;
     try {
       id = await bone.read(SYS_ID);
@@ -45,7 +49,7 @@ const npqConnect = (() => {
         // A Tang Nano 9K's debugger leaves the first UART session after plugging in silent; a break wakes it
         // (found by trial, as Overlay._wake_uart in src/nanopynq/overlay.py). Then the bridge drops what the
         // break left in it (its timeout is 100 ms) before the one further try.
-        if (!/^timeout/.test(first.message) || !bone.port.sendBreak) throw first;
+        if (!connecting || !/^timeout/.test(first.message) || !bone.port.sendBreak) throw first;
         await bone.port.sendBreak(BREAK_MS);
         await new Promise((resolve) => setTimeout(resolve, AFTER_BREAK_MS));
         id = await bone.read(SYS_ID);

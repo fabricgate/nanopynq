@@ -189,7 +189,13 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   await link.sendBreak(60);
   out.breakSignals = port.signals.map(([s]) => s);
   out.breakMs = port.signals[1][1] - port.signals[0][1];
+  // closing during a break ends the break first
+  port.signals = [];
+  const held = link.sendBreak(5000).catch(() => {});
+  await tick();
+  port.close = ((close) => async () => { port.signals.push("close"); return close(); })(port.close);
   await link.close();
+  out.breakAtClose = port.signals.map((s) => (Array.isArray(s) ? s[0] : s));
   // without a callback the failure is dropped, not thrown
   port = fakePort();
   link = new SerialLink(port);
@@ -219,6 +225,7 @@ def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors(
     assert 250 < out["staleOpenMs"] < 900 and out["staleLeft"] == 0 and out["afterStale"] == [0x4E, 0x50, 0x51, 0x31]
     assert 900 < out["noisyOpenMs"] < 2000
     assert out["breakSignals"] == [{"break": True}, {"break": False}] and 50 <= out["breakMs"] < 500
+    assert out["breakAtClose"] == [{"break": True}, {"break": False}, "close"]
     assert out["noCallback"] == "ok"
 
 
@@ -234,7 +241,7 @@ const { UARTBone } = require("./sdk/js/transport/uartbone.js");
 const npqConnect = require("./sdk/js/connect.js");
 (async () => {
   const out = [];
-  for (const { doc, regs, silent: quiet, wakes } of JSON.parse(process.argv[1])) {
+  for (const { doc, regs, silent: quiet, wakes, noAnswer, fails } of JSON.parse(process.argv[1])) {
     let silent = quiet;
     const breaks = [];
     const sent = [];
@@ -247,11 +254,16 @@ const npqConnect = require("./sdk/js/connect.js");
         const v = regs[new DataView(b.buffer).getUint32(2) * 4] ?? 0xdeadbeef;
         rx = [v >>> 24, (v >>> 16) & 255, (v >>> 8) & 255, v & 255];
       },
-      async readExactly(n) { if (rx.length < n) throw new Error("timeout"); return Uint8Array.from(rx.splice(0, n)); },
+      async readExactly(n) {
+        if (rx.length < n) throw new Error(fails ?? "timeout");
+        return Uint8Array.from(rx.splice(0, n));
+      },
     };
     if (wakes !== undefined) port.sendBreak = async (ms) => { breaks.push(ms); silent = !wakes; };
     try {
-      out.push({ ok: await npqConnect.checkBoard(doc, new UARTBone(port, 10)), sent, breaks });
+      const t = performance.now();
+      const ok = await npqConnect.checkBoard(doc, new UARTBone(port, 10), noAnswer);
+      out.push({ ok, sent, breaks, ms: performance.now() - t });
     } catch (e) {
       out.push({ error: e.message, sent, breaks });
     }
@@ -328,6 +340,20 @@ def test_check_board_wakes_a_silent_port_with_one_break():
     assert woke["accesses"] == [("r", 0x0), ("r", 0x0), ("r", 0x4), ("r", 0xC)]
     assert "No answer" in still["error"] and still["breaks"] == [250] and still["accesses"] == [("r", 0x0)] * 2
     assert answering["breaks"] == []  # a port that answers gets none
+    # the bridge gets its time to drop what the break left before the second request (timers may fire a little early)
+    assert woke["ms"] >= 190
+
+
+def test_check_board_sends_no_break_after_connect_time_or_for_another_failure():
+    board = _board(V11, 0xABF78D8C)
+    later, closed = _check(
+        {"doc": _doc("1.1"), "regs": board, "silent": True, "wakes": True, "noAnswer": "the board stopped answering"},
+        {"doc": _doc("1.1"), "regs": board, "silent": True, "wakes": True, "fails": "port closed"},
+    )
+    # a page's poll: other requests share the link, and one sent under a break would be lost
+    assert later["error"] == "timeout. No answer: the board stopped answering." and later["breaks"] == []
+    assert closed["error"].startswith("port closed.") and closed["breaks"] == []
+    assert later["accesses"] == closed["accesses"] == [("r", 0x0)]
 
 
 _PLAN = """
@@ -470,6 +496,7 @@ addEventListener("error", (e) => errors.push(String(e.message)));
 addEventListener("unhandledrejection", (e) => errors.push(`unhandled: ${e.reason}`));
 window.fake = { regs: {}, wire: [], opened: [], closed: 0, delay: 0, closeDelay: 0, cancel: false, ports: [], listeners: [] };
 class FakePort {
+  async setSignals(s) { (fake.signals ??= []).push(s); } // so that a break really runs, as on a real port
   async open(options) {
     fake.opened.push(options);
     let rx;
