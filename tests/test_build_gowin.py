@@ -85,6 +85,12 @@ def test_4k_has_no_family_vopt_and_synth_flags(tmp_path):
     assert "--mspi_as_gpio" in calls[2] and calls[2][2] == "GW1NS-4"
 
 
+def test_pnr_checks_timing_at_the_board_clock(tmp_path):
+    calls, run = recorder()
+    build_gowin([Path("top.v")], Path("t.cst"), get_board("tangmega138kpro"), tmp_path, run=run)
+    assert calls[1][calls[1].index("--freq") + 1] == "50"  # clock_hz 50000000; the 9K's 27 is in the test above
+
+
 @pytest.mark.parametrize("board", ["tangnano9k", "tangnano4k"])
 def test_never_randomizes_seed(tmp_path, board):
     calls, run = recorder()
