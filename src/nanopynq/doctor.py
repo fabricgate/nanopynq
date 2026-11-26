@@ -17,6 +17,7 @@ from nanopynq.transport.jtagbridge import JTAGBridge
 from nanopynq.transport.serialport import find_port
 
 UDEV_DIRS = (Path("/etc/udev/rules.d"), Path("/lib/udev/rules.d"), Path("/usr/lib/udev/rules.d"))
+UNBIND = "/sys/bus/usb/drivers/ftdi_sio/unbind"  # what 99-nanopynq.rules runs for Interface 0
 BUILD_TOOLS = ("yowasp-yosys", "yowasp-nextpnr-himbaechel-gowin", "gowin_pack")
 OPTIONAL = {"yowasp"}  # reported, but never makes the exit code 1
 
@@ -45,12 +46,19 @@ def check_udev(dirs: Iterable[str | Path] = UDEV_DIRS) -> tuple[bool, str]:
     rules = [
         r for d in dirs for pat in ("*nanopynq*.rules", "*openfpgaloader*.rules") for r in sorted(Path(d).glob(pat))
     ]
-    if rules:
-        return True, str(rules[0])
     bundled = files("nanopynq") / "data" / "99-nanopynq.rules"
-    return False, (
-        f"no udev rule for the board found; run: sudo cp {bundled} /etc/udev/rules.d/ "
+    install = (
+        f"sudo cp {bundled} /etc/udev/rules.d/ "
         "&& sudo udevadm control --reload-rules && sudo udevadm trigger, then re-plug the board"
+    )
+    if not rules:
+        return False, f"no udev rule for the board found; run: {install}"
+    if any(UNBIND in r.read_bytes().decode("utf-8", "replace") for r in rules if os.access(r, os.R_OK)):
+        return True, str(rules[0])
+    # Enough for nanopynq's Python, so still OK: only a browser needs the driver off the JTAG interface.
+    return True, (
+        f"{rules[0]} (to program the board from a browser too, install nanopynq's current rule, which takes "
+        f"Linux's serial driver off the JTAG interface: {install})"
     )
 
 
