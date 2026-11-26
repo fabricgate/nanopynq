@@ -5,6 +5,8 @@
 // A classic script that defines one global, `SerialLink`, and is also a CommonJS module for Node.
 "use strict";
 
+const QUIET_MS = 100, DRAIN_MAX_MS = 1000; // a Tang Nano 20K delivered 2632 kept bytes within 16 ms of open
+
 // Web Serial has no read timeout or input flush, so a pump fills a buffer and readers wait on it.
 class SerialLink {
   // onReadError(error): reading failed while open (unplugged, ...); the pump stops, so later reads time out.
@@ -16,6 +18,14 @@ class SerialLink {
     this.writer = this.port.writable.getWriter();
     this.reader = this.port.readable.getReader();
     this.pump = this._pump();
+    // What the board sent while the port was closed (the boot text of the design in the flash) is kept by the
+    // debugger and arrives right after open; resetInput() cannot reach it. Drop input until QUIET_MS pass without
+    // any, for at most DRAIN_MAX_MS (a design that never stops sending).
+    for (let seen = -1, end = performance.now() + DRAIN_MAX_MS; seen !== this.buf.length && performance.now() < end;) {
+      seen = this.buf.length;
+      await new Promise((resolve) => setTimeout(resolve, QUIET_MS));
+    }
+    this.buf.length = 0;
   }
   async _pump() {
     try {
