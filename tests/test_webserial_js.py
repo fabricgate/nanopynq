@@ -153,6 +153,29 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   await tick();
   await link.close();
   out.atMostAfterClose = await link.readAtMost(1, 20).then((b) => [...b], (e) => e.message);
+  // open() drops what the debugger kept from before, in pieces, and returns once the line is quiet
+  port = fakePort();
+  link = new SerialLink(port);
+  const opening = link.open({ baudRate: 115200 });
+  await tick();
+  for (const delay of [0, 30, 60]) setTimeout(() => port.rx.enqueue(Uint8Array.from("15 M: 0x", (c) => c.charCodeAt(0))), delay);
+  await opening;
+  out.staleLeft = link.buf.length;
+  const clean = link.readExactly(4, 1000);
+  port.rx.enqueue(Uint8Array.of(0x4e, 0x50, 0x51, 0x31));
+  out.afterStale = [...await clean];
+  await link.close();
+  // a board that never stops sending does not hold open() forever
+  port = fakePort();
+  link = new SerialLink(port);
+  const noisy = link.open({ baudRate: 115200 });
+  await tick();
+  const chatter = setInterval(() => port.rx.enqueue(Uint8Array.of(0x55)), 20);
+  const t3 = performance.now();
+  await noisy;
+  out.noisyOpenMs = performance.now() - t3;
+  clearInterval(chatter);
+  await link.close();
   // without a callback the failure is dropped, not thrown
   port = fakePort();
   link = new SerialLink(port);
@@ -179,6 +202,8 @@ def test_serial_link_assembles_answers_times_out_closes_and_reports_read_errors(
     assert out["readErrors"] == ["device lost"]
     assert out["afterError"] == "timeout: expected 1 bytes, got 0"
     assert out["failedWhileClosing"] == [] and out["closedAfterFailure"] == 1
+    assert out["staleLeft"] == 0 and out["afterStale"] == [0x4E, 0x50, 0x51, 0x31]
+    assert 900 < out["noisyOpenMs"] < 2000
     assert out["noCallback"] == "ok"
 
 
