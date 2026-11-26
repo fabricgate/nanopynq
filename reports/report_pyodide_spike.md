@@ -18,7 +18,7 @@
   ページの側で手当てをしたあとは、A と B のどちらでも、入出力のループが 30 回中 30 回、sleep のループが 15 回中 15 回、`KeyboardInterrupt` で止まった。応答しないボードを待っているあいだも止まったが、止まるのは、読み取りの時間切れ(1 秒)を待ってからになる。
 - **nanopynq の本体を変えなくても動いた(5 章、7 章)。** `Overlay(download=False, port=..., open_port=...)` の既存の差し替え口で足りた。勧める変更は 2 つ。
   - 依存に環境マーカーを付ける。付ければ `micropip.install` で入るようになる(確かめた)。
-  - `.npq` だけを開けるようにする。今は `download=False` でも `.fs` が要る。
+  - `.npq` だけを開けるようにする。今は `download=False` でも `.fs` が要る。(2026-11-26 追記)この変更は入った(5 章の追記)。
 - **読み込みの大きさは、転送で 6.7 MB(展開すると 14.0 MB)。時間は、ページを開いてから使えるまで約 2.2 秒(この環境、キャッシュなし)(6 章)。** 時間の大半は、Pyodide 自体の読み込みと初期化(約 1.8 秒)で、キャッシュがあっても約 2.0 秒かかる。
 - **往復時間は、模擬のポートでの「上乗せ分」だけを測った(6.2 章)。** レジスタの読み取り 1 回あたり、Python を通すと、JavaScript だけのときより A で 0.16〜0.21 ms、B で 0.32〜0.41 ms 増える(5 回の実行の幅)。実機の往復時間(#21 の JavaScript で 2 ms)に足すと 2.2〜2.4 ms ほどになる見込みだが、これは推定で、実測ではない。
 
@@ -153,6 +153,8 @@ NpqError V12 at bitstream.sha256: base.fs: not found
 ```
 FabricGate のページで、`.npq` だけを渡して開く使い方をするなら、7.2 章の 2 の変更が要る。
 
+(2026-11-26 追記)7.2 章の 2 の変更は入った。`download=False` では `.fs` を読まず(`load_npq(check_bitstream=False)`、仕様 5.7 の 3)、デザインは `sys.design_id` で照合する。ページの `Overlay` は `.npq` だけで開き、上のエラーは出ない。開いたときの `manifest.sha256` は `None` になる。ボードの `sys.design_id` が違えば `DesignMismatch` になる。どちらも `tests/test_pyodide_page.py` の `test_a_npq_opens_without_its_fs` で確かめている。
+
 ## 6. 測定
 
 ### 6.1 読み込みの大きさと時間(Chrome 157、この環境のネットワーク)
@@ -214,7 +216,7 @@ A には、`crossOriginIsolated` が `true` であることが要る。そのた
 
 ### 7.2 nanopynq の本体に要る変更(勧めるもの。今回はしていない)
 1. **依存の分け方**: `pyserial`、`pyusb`、`libusb-package` に `; sys_platform != 'emscripten'` を付ける。付ければ、`micropip.install` が依存ごと通る(3.1 章で確認)。付けなければ、今回のように依存を入れずに読み込む必要がある。
-2. **`.npq` だけで開く**: `download=False` のときは `.fs` の sha256 の照合(V12)を飛ばし、デザインの照合を `sys.design_id` に任せる。この変更をしないなら、ページでは `.fs` も一緒に渡す必要がある(9K の base で 428 KB)。仕様(V12)の変更を伴うので、別の issue で決める。
+2. **`.npq` だけで開く**: `download=False` のときは `.fs` の sha256 の照合(V12)を飛ばし、デザインの照合を `sys.design_id` に任せる。この変更をしないなら、ページでは `.fs` も一緒に渡す必要がある(9K の base で 428 KB)。仕様(V12)の変更を伴うので、別の issue で決める。(2026-11-26 追記)入った(5 章の追記)。
 3. **通信の層の差し替え口**: 今の `open_port=`(と `transport=`)で足りた。公開の API として残すなら、名前と型を決めて、文書に書く。`page.py` の `WebSerialPort` を `nanopynq.transport` に移すかは、セルを FabricGate に組み込むときに決めればよい。
 4. **(小さい)ブラウザでは使わない `.fs` を wheel から外せる**: ブラウザ向けの配布で 269 KB(展開後 9.7 MB)減る。
 5. **(小さい)ポートが開けないときの案内**: ブラウザでは、Linux 向けの「dialout のグループに入っていない」という案内が出る。Pyodide では `sys.platform` が `emscripten` で、`overlay._open_hint()` が Linux の案内を選ぶためだ。
