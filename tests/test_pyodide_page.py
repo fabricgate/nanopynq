@@ -318,24 +318,38 @@ def test_what_the_headers_do_to_resources_from_other_sites(context, server):
 
 
 def test_what_does_not_work_and_why(context, server):
-    """The errors the report quotes: installing with the dependencies, and opening a .npq without its .fs."""
+    """The error the report quotes for installing with the dependencies."""
     page = ready_page(context, server, "b")
     out = run(
         page,
-        "import js, micropip, os, shutil\n"
-        "from nanopynq.resolve import resolve_design\n"
+        "import js, micropip\n"
         "try:\n"
         "    await micropip.install(js.location.href.split('index.html')[0] + js.spike.wheel)\n"
         "except Exception as e:\n"
-        "    print('micropip:', type(e).__name__, e)\n"
-        "os.makedirs('/tmp/npq', exist_ok=True)\n"
-        "shutil.copy(resolve_design('base', 'tangnano9k') / 'base.npq', '/tmp/npq/base.npq')\n"
-        "try:\n"
-        "    Overlay('/tmp/npq/base.npq')\n"
-        "except Exception as e:\n"
-        "    print('npq-only:', type(e).__name__, e)\n",
+        "    print('micropip:', type(e).__name__, e)\n",
         timeout=120_000,
     )
     report("errors", out)
     assert "micropip:" in out and "libusb" in out
-    assert "npq-only: NpqError" in out and "V12" in out
+
+
+def test_a_npq_opens_without_its_fs(context, server):
+    """The page's Overlay (download=False) opens a .npq alone: no .fs is read (V12 skipped, sha256 None), and
+    opening still checks the board's sys.design_id against the .npq."""
+    page = ready_page(context, server, "b")
+    out = run(
+        page,
+        "import os, shutil\n"
+        "from nanopynq.resolve import resolve_design\n"
+        "os.makedirs('/tmp/npq', exist_ok=True)\n"
+        "shutil.copy(resolve_design('base', 'tangnano9k') / 'base.npq', '/tmp/npq/base.npq')\n"
+        "ol = Overlay('/tmp/npq/base.npq')\n"
+        "print('npq-only:', ol.manifest.sha256, hex(ol.manifest.design_id))\n",
+    )
+    assert "npq-only: None 0xabf78d8c" in out, out
+    page.evaluate("__mock.regs.set(0xc, 0x12345678)")  # another design on the board
+    out = run(
+        page,
+        "try:\n    Overlay('/tmp/npq/base.npq')\nexcept Exception as e:\n    print('mismatch:', type(e).__name__)\n",
+    )
+    assert "mismatch: DesignMismatch" in out, out
