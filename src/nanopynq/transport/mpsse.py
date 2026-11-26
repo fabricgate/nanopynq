@@ -105,7 +105,12 @@ class Mpsse:
         try:
             try:
                 if dev.is_kernel_driver_active(0):
-                    dev.detach_kernel_driver(0)
+                    try:
+                        dev.detach_kernel_driver(0)
+                    except usb.core.USBError:
+                        # nanopynq's udev rule unbinds ftdi_sio right after it binds: it may get there first
+                        if dev.is_kernel_driver_active(0):
+                            raise
             except NotImplementedError:  # Windows
                 pass
             try:

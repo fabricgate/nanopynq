@@ -26,6 +26,7 @@ JTAG interface of the board's onboard USB debugger; openFPGALoader is optional (
 python -m venv .venv && . .venv/bin/activate
 pip install nanopynq
 # USB permissions (JTAG and UART): install the udev rule shipped with nanopynq, then re-plug the board.
+# The rule also takes Linux's serial driver off the JTAG interface, so that a browser (WebUSB) can program the board.
 # (`python -m nanopynq doctor` prints this command with the rule's path if the rule is missing.)
 sudo cp "$(python -c 'import nanopynq, pathlib; print(pathlib.Path(nanopynq.__file__).parent / "data" / "99-nanopynq.rules")')" /etc/udev/rules.d/ && sudo udevadm control --reload-rules && sudo udevadm trigger
 # Serial port permissions: join the dialout group, then log in again.

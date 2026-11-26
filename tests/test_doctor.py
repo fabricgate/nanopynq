@@ -166,3 +166,25 @@ def test_zadig_is_only_for_webusb_and_openfpgaloader():
 
     ok, msg = check_zadig()
     assert ok and "WebUSB" in msg and "openFPGALoader" in msg and "D2XX" in msg
+
+
+def test_bundled_rule_unbinds_the_serial_driver_from_the_jtag_interface_only():
+    """#7: a browser (WebUSB) cannot open Interface 0 while ftdi_sio holds it. Interface 1 is the UART."""
+    from importlib.resources import files
+
+    lines = (files("nanopynq") / "data" / "99-nanopynq.rules").read_text(encoding="utf-8").splitlines()
+    rules = [ln for ln in lines if ln and not ln.startswith("#")]
+    (access,) = [ln for ln in rules if "RUN+=" not in ln]
+    (unbind,) = [ln for ln in rules if "RUN+=" in ln]
+    assert 'MODE="0664"' in access and 'TAG+="uaccess"' in access and "bInterfaceNumber" not in access
+    for key in (
+        'ACTION=="bind"',
+        'DRIVER=="ftdi_sio"',
+        'ATTR{bInterfaceNumber}=="00"',  # the interface itself, not a parent: Interface 1 never matches
+        'ATTRS{idVendor}=="0403"',
+        'ATTRS{idProduct}=="6010"',
+        'ATTRS{manufacturer}=="SIPEED"',  # not every FT2232 adapter
+        'ATTRS{product}=="JTAG Debugger|USB Debugger"',  # the Tang boards' debuggers (9K, 4K | 20K, 138K Pro)
+    ):
+        assert key in unbind, key
+    assert unbind.endswith("""RUN+="/bin/sh -c 'echo %k > /sys/bus/usb/drivers/ftdi_sio/unbind'\"""")
