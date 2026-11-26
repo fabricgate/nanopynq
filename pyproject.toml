@@ -1,6 +1,6 @@
 [project]
 name = "nanopynq"
-version = "0.1.1"
+version = "0.2.0"
 description = "PYNQ-style control of open-toolchain FPGA boards (Sipeed Tang Nano) over USB (UART or JTAG)"
 readme = "README.md"
 requires-python = ">=3.11"
