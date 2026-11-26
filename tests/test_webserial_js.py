@@ -527,7 +527,7 @@ def test_page_flow_in_chrome(tmp_path):
     good["name"] = "<img src=x onerror=errors.push('name')>"  # top-level strings are not checked (spec 5.2)
     good["ips"]["leds"]["doc"] = "<i>six</i> LEDs"  # doc is not part of the design_id
     jtag = json.loads(base_text)
-    jtag["link"] = {"kind": "jtag"}
+    jtag["link"] = {"kind": "jtag", "usb_vid": jtag["link"]["usb_vid"], "usb_pid": jtag["link"]["usb_pid"]}
     files = {
         "broken.npq": '{"format": "nanopynq-design/1", "board": 6.0}',
         "base.npq": json.dumps(good),
