@@ -144,6 +144,22 @@ def test_udev_still_accepts_openfpgaloader_rule(tmp_path):
     assert check_udev(dirs=(tmp_path,))[0]
 
 
+def test_udev_says_when_no_installed_rule_frees_the_jtag_interface_for_a_browser(tmp_path):
+    from importlib.resources import files
+
+    old = "99-nanopynq.rules"  # a copy from before the unbind rule, or openFPGALoader's rule alone
+    (tmp_path / old).write_text('ACTION=="add", ATTRS{idVendor}=="0403", MODE="0664"\n')
+    ok, msg = check_udev(dirs=(tmp_path,))
+    assert ok  # Python needs no more than the access rule: the exit code stays 0
+    assert "from a browser" in msg and msg.count("sudo cp ") == 1 and "re-plug" in msg
+    current = (files("nanopynq") / "data" / "99-nanopynq.rules").read_text(encoding="utf-8")
+    (tmp_path / old).write_text(current)
+    assert check_udev(dirs=(tmp_path,)) == (True, str(tmp_path / old))
+    # an unreadable or odd file is not a crash
+    (tmp_path / old).write_bytes(b"\xff\xfe")
+    assert check_udev(dirs=(tmp_path,))[0]
+
+
 def test_udev_missing_points_to_bundled_rule(tmp_path):
     ok, msg = check_udev(dirs=(tmp_path,))
     assert not ok and "99-nanopynq.rules" in msg
